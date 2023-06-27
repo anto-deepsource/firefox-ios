@@ -4,8 +4,6 @@
 
 import Foundation
 
-/// This struct defines all the accessibility identifiers to be added to
-/// screen elements for testing.
 ///
 /// These should be organized logically according to main screen or the
 /// main element wherein they appear. As we continue updating views, all
