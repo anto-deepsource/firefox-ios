@@ -12,7 +12,13 @@ let package = Package(
         .package(url: "https://github.com/danger/swift.git", exact: "3.16.0"), // dev
         .package(url: "https://github.com/f-meloni/danger-swift-coverage", exact: "1.2.1"), // dev
         .package(url: "https://github.com/f-meloni/danger-swift-coverage2", exact: "1.2.1"), // dev
-        .package(url: "https://github.com/f-meloni/danger-swift-coverage3", exact: "1.2.1") // dev
+        .package(url: "https://github.com/f-meloni/danger-swift-coverage3", exact: "1.2.1"), // dev
+        .package(url: "https://github.com/f-meloni/danger-swift-coverage4", exact: "1.2.1"), // dev
+        .package(url: "https://github.com/f-meloni/danger-swift-coverage5", exact: "1.2.1"), // dev
+        .package(url: "https://github.com/f-meloni/danger-swift-coverage6", exact: "1.2.1"), // dev
+        .package(url: "https://github.com/f-meloni/danger-swift-coverage7", exact: "1.2.1"), // dev
+        .package(url: "https://github.com/f-meloni/danger-swift-coverage8", exact: "1.2.1"), // dev
+        .package(url: "https://github.com/f-meloni/danger-swift-coverage9", exact: "1.2.1"), // dev
     ],
     targets: [
         .target(
