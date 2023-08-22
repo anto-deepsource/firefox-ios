@@ -3,7 +3,6 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
 import Shared
-import SyncTelemetry
 import Account
 import MozillaAppServices
 import Common
@@ -64,13 +63,16 @@ extension FxAPushMessageHandler {
             completion(.failure(PushMessageError.notDecrypted))
             return
         }
+        handleDecryptedMessage(message: string, completion: completion)
+    }
 
+    func handleDecryptedMessage(message: String, completion: @escaping (Result<PushMessage, PushMessageError>) -> Void) {
         // Reconfig has to happen on the main thread, since it calls `startup`
         // and `startup` asserts that we are on the main thread. Otherwise the notification
         // service will crash.
         DispatchQueue.main.async {
-            RustFirefoxAccounts.reconfig(prefs: self.profile.prefs).uponQueue(.main) { accountManager in
-                accountManager.deviceConstellation()?.handlePushMessage(pushPayload: string) {
+            RustFirefoxAccounts.reconfig(prefs: self.profile.prefs).upon { accountManager in
+                accountManager.deviceConstellation()?.handlePushMessage(pushPayload: message) {
                     result in
                     guard case .success(let event) = result else {
                         let err: PushMessageError

@@ -267,12 +267,14 @@ class BoolSetting: Setting, FeatureFlaggable {
     convenience init(
         with featureFlagID: NimbusFeatureFlagID,
         titleText: NSAttributedString,
+        statusText: NSAttributedString? = nil,
         settingDidChange: ((Bool) -> Void)? = nil
     ) {
         self.init(
             prefs: nil,
             defaultValue: nil,
             attributedTitleText: titleText,
+            attributedStatusText: statusText,
             featureFlagName: featureFlagID,
             settingDidChange: settingDidChange)
     }
@@ -466,7 +468,7 @@ class WebPageSetting: StringPrefSetting {
     override func onConfigureCell(_ cell: UITableViewCell, theme: Theme) {
         super.onConfigureCell(cell, theme: theme)
         cell.accessoryType = isChecked() ? .checkmark : .none
-        textField.textAlignment = .left
+        textField.textAlignment = .natural
     }
 
     static func isURLOrEmpty(_ string: String?) -> Bool {
@@ -531,7 +533,7 @@ class StringSetting: Setting, UITextFieldDelegate {
         cell.accessibilityTraits = UIAccessibilityTraits.none
         cell.contentView.addSubview(textField)
 
-        textField.font = DynamicFontHelper.defaultHelper.DefaultStandardFont
+        textField.font = LegacyDynamicFontHelper.defaultHelper.DefaultStandardFont
 
         textField.snp.makeConstraints { make in
             make.height.equalTo(44)
@@ -676,7 +678,11 @@ class ButtonSetting: Setting {
     let destructive: Bool
     let isEnabled: (() -> Bool)?
 
-    init(title: NSAttributedString?, destructive: Bool = false, accessibilityIdentifier: String, isEnabled: (() -> Bool)? = nil, onClick: @escaping (UINavigationController?) -> Void) {
+    init(title: NSAttributedString?,
+         destructive: Bool = false,
+         accessibilityIdentifier: String,
+         isEnabled: (() -> Bool)? = nil,
+         onClick: @escaping (UINavigationController?) -> Void) {
         self.onButtonClick = onClick
         self.destructive = destructive
         self.isEnabled = isEnabled
@@ -748,13 +754,11 @@ class WithoutAccountSetting: AccountSetting {
 @objc
 protocol SettingsDelegate: AnyObject {
     func settingsOpenURLInNewTab(_ url: URL)
+    func didFinish()
 }
 
 // The base settings view controller.
 class SettingsTableViewController: ThemedTableViewController {
-    typealias SettingsGenerator = (SettingsTableViewController, SettingsDelegate?) -> [SettingSection]
-
-    fileprivate let Identifier = "CellIdentifier"
     var settings = [SettingSection]()
 
     weak var settingsDelegate: SettingsDelegate?
@@ -765,7 +769,8 @@ class SettingsTableViewController: ThemedTableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: Identifier)
+        tableView.register(cellType: ThemedLeftAlignedTableViewCell.self)
+        tableView.register(cellType: ThemedSubtitleTableViewCell.self)
         tableView.register(ThemedTableSectionHeaderFooterView.self,
                            forHeaderFooterViewReuseIdentifier: ThemedTableSectionHeaderFooterView.cellIdentifier)
         tableView.tableFooterView = UIView(frame: CGRect(width: view.frame.width, height: 30))
@@ -801,7 +806,9 @@ class SettingsTableViewController: ThemedTableViewController {
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
 
-        [Notification.Name.ProfileDidStartSyncing, Notification.Name.ProfileDidFinishSyncing, Notification.Name.FirefoxAccountChanged].forEach { name in
+        [Notification.Name.ProfileDidStartSyncing,
+         Notification.Name.ProfileDidFinishSyncing,
+         Notification.Name.FirefoxAccountChanged].forEach { name in
             NotificationCenter.default.removeObserver(self, name: name, object: nil)
         }
     }
@@ -844,12 +851,28 @@ class SettingsTableViewController: ThemedTableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let section = settings[indexPath.section]
         if let setting = section[indexPath.row] {
-            let cell = ThemedTableViewCell(style: setting.style, reuseIdentifier: nil)
+            let cell = dequeueCellFor(indexPath: indexPath, setting: setting)
             setting.onConfigureCell(cell, theme: themeManager.currentTheme)
             cell.applyTheme(theme: themeManager.currentTheme)
             return cell
         }
         return super.tableView(tableView, cellForRowAt: indexPath)
+    }
+
+    private func dequeueCellFor(indexPath: IndexPath, setting: Setting) -> ThemedTableViewCell {
+        if setting.style == .subtitle {
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: ThemedSubtitleTableViewCell.cellIdentifier, for: indexPath) as? ThemedSubtitleTableViewCell else {
+                return ThemedSubtitleTableViewCell()
+            }
+            return cell
+        }
+        if setting.style == .value1 {
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: ThemedLeftAlignedTableViewCell.cellIdentifier, for: indexPath) as? ThemedLeftAlignedTableViewCell else {
+                return ThemedLeftAlignedTableViewCell()
+            }
+            return cell
+        }
+        return dequeueCellFor(indexPath: indexPath)
     }
 
     override func numberOfSections(in tableView: UITableView) -> Int {

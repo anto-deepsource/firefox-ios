@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import UIKit
 import Storage
 import Shared
@@ -79,7 +80,7 @@ class BookmarkDetailPanel: SiteTableViewController {
     }()
 
     fileprivate lazy var topLeftButton: UIBarButtonItem =  {
-        let button = UIBarButtonItem(image: UIImage.templateImageNamed("nav-stop"), style: .done, target: self, action: #selector(topLeftButtonAction))
+        let button = UIBarButtonItem(image: UIImage.templateImageNamed(StandardImageIdentifiers.Large.cross), style: .done, target: self, action: #selector(topLeftButtonAction))
         return button
     }()
 
@@ -271,6 +272,11 @@ class BookmarkDetailPanel: SiteTableViewController {
                     return deferMaybe(BookmarkDetailPanelError())
                 }
 
+                TelemetryWrapper.recordEvent(category: .action,
+                                             method: .tap,
+                                             object: .bookmark,
+                                             value: .bookmarkAddFolder)
+
                 return profile.places.createFolder(parentGUID: parentBookmarkFolder.guid,
                                                    title: bookmarkItemOrFolderTitle,
                                                    position: position).bind({ result in
@@ -362,7 +368,7 @@ class BookmarkDetailPanel: SiteTableViewController {
                 cell.isUserInteractionEnabled = true
             }
 
-            cell.leftImageView.image = UIImage(named: "bookmarkFolder")?.createScaled(BookmarkDetailPanelUX.FolderIconSize)
+            cell.leftImageView.image = UIImage(named: StandardImageIdentifiers.Large.folder)
             cell.leftImageView.contentMode = .center
             cell.indentationWidth = BookmarkDetailPanelUX.IndentationWidth
 
@@ -395,6 +401,7 @@ class BookmarkDetailPanel: SiteTableViewController {
                 cell.accessoryType = .none
             }
 
+            cell.applyTheme(theme: themeManager.currentTheme)
             return cell
         }
 
@@ -404,6 +411,7 @@ class BookmarkDetailPanel: SiteTableViewController {
         }
 
         cell.delegate = self
+        cell.applyTheme(theme: themeManager.currentTheme)
 
         switch indexPath.row {
         case BookmarkDetailFieldsRow.title.rawValue:

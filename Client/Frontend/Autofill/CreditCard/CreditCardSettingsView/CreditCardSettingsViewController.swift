@@ -25,7 +25,7 @@ class CreditCardSettingsViewController: SensitiveViewController, Themeable {
     var creditCardTableViewController: CreditCardTableViewController
 
     private lazy var addCreditCardButton: UIBarButtonItem = {
-        return UIBarButtonItem(image: UIImage.templateImageNamed(ImageIdentifiers.navAdd),
+        return UIBarButtonItem(image: UIImage.templateImageNamed(StandardImageIdentifiers.Large.plus),
                                style: .plain,
                                target: self,
                                action: #selector(addCreditCard))
@@ -172,6 +172,7 @@ class CreditCardSettingsViewController: SensitiveViewController, Themeable {
     }
 
     private func showToast(status: CreditCardModifiedStatus) {
+        guard status != .none else { return }
         SimpleToast().showAlertWithText(status.message,
                                         bottomContainer: view,
                                         theme: themeManager.currentTheme)

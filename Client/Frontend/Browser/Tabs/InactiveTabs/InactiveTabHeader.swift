@@ -2,23 +2,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Foundation
+import Shared
 
-enum ExpandButtonState {
-    case right
-    case down
-
-    var image: UIImage? {
-        switch self {
-        case .right:
-            return UIImage(named: ImageIdentifiers.menuChevron)?.imageFlippedForRightToLeftLayoutDirection()
-        case .down:
-            return UIImage(named: ImageIdentifiers.findNext)
-        }
-    }
-}
-
-class InactiveTabHeader: UITableViewHeaderFooterView, LegacyNotificationThemeable, ReusableCell {
+class InactiveTabHeader: UITableViewHeaderFooterView, ReusableCell {
     var state: ExpandButtonState? {
         willSet(state) {
             moreButton.setImage(state?.image, for: .normal)
@@ -27,8 +15,7 @@ class InactiveTabHeader: UITableViewHeaderFooterView, LegacyNotificationThemeabl
 
     lazy var titleLabel: UILabel = .build { titleLabel in
         titleLabel.text = self.title
-        titleLabel.textColor = UIColor.legacyTheme.homePanel.activityStreamHeaderText
-        titleLabel.font = DynamicFontHelper.defaultHelper.preferredFont(
+        titleLabel.font = LegacyDynamicFontHelper.defaultHelper.preferredFont(
             withTextStyle: .headline,
             maxSize: 17)
         titleLabel.adjustsFontForContentSizeCategory = true
@@ -51,7 +38,6 @@ class InactiveTabHeader: UITableViewHeaderFooterView, LegacyNotificationThemeabl
 
     override func prepareForReuse() {
         super.prepareForReuse()
-        applyTheme()
         moreButton.setTitle(nil, for: .normal)
         moreButton.accessibilityIdentifier = nil
         titleLabel.text = nil
@@ -79,16 +65,14 @@ class InactiveTabHeader: UITableViewHeaderFooterView, LegacyNotificationThemeabl
             moreButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
             moreButton.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -28),
         ])
-
-        applyTheme()
     }
 
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func applyTheme() {
-        let theme = BuiltinThemeName(rawValue: LegacyThemeManager.instance.current.name) ?? .normal
-        self.titleLabel.textColor = theme == .dark ? .white : .black
+    func applyTheme(theme: Theme) {
+        titleLabel.textColor = theme.colors.textPrimary
+        moreButton.tintColor = theme.colors.textPrimary
     }
 }

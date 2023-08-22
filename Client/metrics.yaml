@@ -38,6 +38,19 @@ app_cycle:
     notification_emails:
       - fx-ios-data-stewards@mozilla.com
     expires: "2023-12-01"
+# App icon
+app_icon:
+  new_private_tab_tapped:
+    type: event
+    description: |
+      A user opened a new private tab from long pressing the app icon
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14903
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15503
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2024-07-06"
 # Accessibility
 accessibility:
   voice_over:
@@ -328,6 +341,7 @@ app_menu:
       - https://github.com/mozilla-mobile/firefox-ios/pull/9673
       - https://github.com/mozilla-mobile/firefox-ios/pull/12334
       - https://github.com/mozilla-mobile/firefox-ios/pull/14102
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15181
     notification_emails:
       - fx-ios-data-stewards@mozilla.com
     expires: "2023-12-01"
@@ -422,6 +436,7 @@ bookmarks:
       the following:
       * Awesomebar results
       * Bookmarks Panel
+      * Top sites
     labels:
       - awesomebar-results
       - bookmarks-panel
@@ -432,6 +447,43 @@ bookmarks:
       - https://github.com/mozilla-mobile/firefox-ios/pull/9673
       - https://github.com/mozilla-mobile/firefox-ios/pull/12334
       - https://github.com/mozilla-mobile/firefox-ios/pull/14102
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15833
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
+  has_mobile_bookmarks:
+    type: boolean
+    description: |
+      A boolean that indicates if the user has bookmarks
+      in the mobile folder.
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/15620
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15833
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
+  mobile_bookmarks_count:
+    type: quantity
+    description: |
+      A quantity that indicates how many bookmarks a user
+      has in the mobile folder.
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/15620
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15833
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
+    unit: quantity of mobile bookmarks
+  folder_add:
+    type: event
+    description: |
+      A user added a new bookmark folder.
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/15620
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15833
     notification_emails:
       - fx-ios-data-stewards@mozilla.com
     expires: "2023-12-01"
@@ -591,6 +643,33 @@ downloads:
     notification_emails:
       - fx-ios-data-stewards@mozilla.com
     expires: "2023-12-01"
+
+# Shopping Experience (Fakespot)
+shopping:
+  address_bar_icon_clicked:
+    type: event
+    description: |
+      Records when the shopping icon from the address bar is tapped
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/15681
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15780
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2024-07-27"
+
+  surface_closed:
+    type: event
+    description: |
+      Records when the surface (bottom sheet) is dismissed
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/15681
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15780
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2024-07-27"
+
 # Key Commands
 key_commands:
   press_key_command_action:
@@ -1066,7 +1145,28 @@ top_sites:
     metadata:
       tags:
         - TopSites
-
+  open_in_private_tab:
+    type: event
+    description: |
+      A user opens a new private tab based on a top site item
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14903
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15503
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2024-07-06"
+  sponsored_shortcuts:
+    type: boolean
+    description: |
+      Tracks if the user has enabled sponsored shortcuts
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1842084
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15768
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
 # HomePage
 firefox_home_page:
   open_from_menu_home_button:
@@ -1607,6 +1707,17 @@ library:
 
 # History Panel
 history:
+  opened:
+    type: event
+    description: |
+      A user opened the history screen.
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14905
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15696
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
   group_list:
     type: counter
     description: |
@@ -1664,6 +1775,51 @@ history:
       - https://github.com/mozilla-mobile/firefox-ios/pull/10494
       - https://github.com/mozilla-mobile/firefox-ios/pull/12334
       - https://github.com/mozilla-mobile/firefox-ios/pull/14102
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
+  removed:
+    type: event
+    description: |
+      A user removed a history item.
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14905
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15696
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
+  removed_today:
+    type: event
+    description: |
+      A user removed history items opened that day.
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14905
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15696
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
+  removed_today_and_yesterday:
+    type: event
+    description: |
+      A user removed history items opened that
+      day and the day before.
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14905
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15696
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
+  removed_all:
+    type: event
+    description: |
+      A user removed all history items.
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14905
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15696
     notification_emails:
       - fx-ios-data-stewards@mozilla.com
     expires: "2023-12-01"
@@ -1936,7 +2092,17 @@ pocket:
     notification_emails:
       - fx-ios-data-stewards@mozilla.com
     expires: "2023-12-01"
-
+  open_in_private_tab:
+    type: event
+    description: |
+      A user opens a new private tab based on a pocket story item
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14903
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15503
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2024-07-06"
 # Preference metrics
 preferences:
   changed:
@@ -2025,6 +2191,39 @@ preferences:
     notification_emails:
       - fx-ios-data-stewards@mozilla.com
     expires: "2023-12-01"
+  tips_and_features_notifs:
+    type: boolean
+    description: |
+      True if notifications for tips and features are allowed, otherwise false.
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14907
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15114
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
+  sync_notifs:
+    type: boolean
+    description: |
+      True if notifications for sync are allowed, otherwise false.
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14907
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15114
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
+  fxa_logged_in:
+    type: boolean
+    description: |
+      Measures the state of the fxa login.
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14904
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15181
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
   close_private_tabs:
     type: boolean
     description: |
@@ -2036,6 +2235,66 @@ preferences:
       - https://github.com/mozilla-mobile/firefox-ios/pull/9673
       - https://github.com/mozilla-mobile/firefox-ios/pull/12334
       - https://github.com/mozilla-mobile/firefox-ios/pull/14102
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
+  jump_back_in:
+    type: boolean
+    description: |
+      An indication of whether the Jump back in section
+      is enabled to be displayed.
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14908
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15583
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
+  recently_visited:
+    type: boolean
+    description: |
+      An indication of whether the Recently visited section
+      is enabled to be displayed.
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14908
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15583
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
+  recently_saved:
+    type: boolean
+    description: |
+      An indication of whether the recently saved section
+      is enabled to be displayed.
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14908
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15583
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
+  pocket:
+    type: boolean
+    description: |
+      An indication of whether Pocket is enabled to be displayed.
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14908
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15583
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
+  opening_screen:
+    type: string
+    description: |
+      What opening screen preference the user has selected under
+      "Customize Home". "homepage," "last tab," or
+      "homepage after 4 hours" default: "homepage after 4 hours".
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14908
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15583
     notification_emails:
       - fx-ios-data-stewards@mozilla.com
     expires: "2023-12-01"
@@ -2428,6 +2687,41 @@ sync:
     notification_emails:
       - fx-ios-data-stewards@mozilla.com
     expires: "2023-12-01"
+  use_email:
+    type: event
+    description: |
+      A user chose to use their email to attempt a sign in instead
+      of scanning a QR code, counterpart to "scan_pairing".
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14904
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15181
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
+  paired:
+    type: event
+    description: |
+      A user scanned QR code to attempt to sign in.
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14904
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15181
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
+  disconnect:
+    type: event
+    description: |
+      A user tapped disconnect sync in fxa page.
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14904
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15181
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
+
 
 # Tab metrics
 tabs:
@@ -2461,6 +2755,20 @@ tabs:
       - fx-ios-data-stewards@mozilla.com
     expires: "2023-12-01"
     unit: quantity of private tabs
+  inactive_tabs_count:
+    type: quantity
+    description: |
+      A quantity that indicates how many INACTIVE tabs a user
+      currently has open. This is reported when the user backgrounds
+      the app.
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14906
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/15511
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-01"
+    unit: quantity of inactive tabs
   cumulative_count:
     type: counter
     description: |
@@ -2826,7 +3134,29 @@ tracking_protection:
     notification_emails:
       - fx-ios-data-stewards@mozilla.com
     expires: "2023-12-01"
-
+  etp_setting_changed:
+    type: event
+    description: |
+      A user changed their tracking protection
+      level setting to either strict or standard
+    extra_keys:
+      etp_setting:
+       type: string
+       description: |
+         Records the protection level:
+         standard / strict
+      etp_enabled:
+       type: boolean
+       description: |
+         Records the state
+         true / false
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14903
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15503
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2024-07-06"
 # iOS 14 widget metrics
 # m: medium, s: small, l: large
 widget:
@@ -3054,6 +3384,36 @@ cfr_analytics:
       - fx-ios-data-stewards@mozilla.com
     expires: "2023-12-01"
 
+# Tabs Tray metrics
+tabs_tray:
+  private_browsing_icon_tapped:
+    type: event
+    description: |
+      A user has tapped on the private browsing icon in tabs tray.
+    extra_keys:
+      action:
+       type: string
+       description: |
+         Records the action:
+         close_all_tabs / add / done
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14903
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15503
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2024-07-06"
+  new_private_tab_tapped:
+    type: event
+    description: |
+      A user opened a new private tab from the tab tray
+    bugs:
+      - https://github.com/mozilla-mobile/firefox-ios/issues/14903
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15503
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2024-07-06"
 # Inactive Tabs metrics
 inactive_tabs_tray:
   toggle_inactive_tab_tray:
@@ -3698,3 +4058,117 @@ credit_card:
     notification_emails:
       - fx-ios-data-stewards@mozilla.com
     expires: "2023-12-01"
+  form_detected:
+    type: event
+    description: |
+      Recorded when the user taps on credit card form input
+      and we detect it.
+    bugs:
+      - https://mozilla-hub.atlassian.net/browse/FXIOS-6703
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15251
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-31"
+  autofilled:
+    type: event
+    description: |
+      Recorded when a user taps a card from bottom sheet
+      select a card flow and the credit card does not
+      get autofilled on the webpage page
+    bugs:
+      - https://mozilla-hub.atlassian.net/browse/FXIOS-6703
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15251
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-31"
+  autofill_failed:
+    type: event
+    description: |
+      Recorded when a user taps a card from bottom sheet
+      select a card flow and the credit card does not
+      get autofilled on the webpage page
+    bugs:
+      - https://mozilla-hub.atlassian.net/browse/FXIOS-6703
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15251
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-31"
+  save_prompt_create:
+    type: event
+    description: |
+      Recorded when a user saved a credit card using
+      the autofill save prompt.
+    bugs:
+      - https://mozilla-hub.atlassian.net/browse/FXIOS-6703
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15251
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-31"
+  autofill_toggle:
+    type: event
+    description: |
+      Recorded when a user toggles to enable save and autofill
+      cards in autofill settings
+    send_in_pings:
+      - events
+    extra_keys:
+      is_enabled:
+        type: boolean
+        description: |
+          If is enabled or not (true / false)
+    bugs:
+      - https://mozilla-hub.atlassian.net/browse/FXIOS-6703
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15251
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-31"
+  sync_toggle:
+    type: event
+    description: |
+      Recorded when a user toggles to enable save and autofill
+      cards in sync settings
+    send_in_pings:
+      - events
+    extra_keys:
+      is_enabled:
+        type: boolean
+        description: |
+          If is enabled or not (true / false)
+    bugs:
+      - https://mozilla-hub.atlassian.net/browse/FXIOS-6703
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15251
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-31"
+  autofill_enabled:
+    type: boolean
+    description: |
+      Recorded on startup to check if credit card
+      autofill settings are enabled
+    lifetime: application
+    bugs:
+      - https://mozilla-hub.atlassian.net/browse/FXIOS-6703
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15251
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-31"
+  sync_enabled:
+    type: boolean
+    description: |
+      Recorded on startup to check if credit card
+      sync settings are enabled
+    lifetime: application
+    bugs:
+      - https://mozilla-hub.atlassian.net/browse/FXIOS-6703
+    data_reviews:
+      - https://github.com/mozilla-mobile/firefox-ios/pull/15251
+    notification_emails:
+      - fx-ios-data-stewards@mozilla.com
+    expires: "2023-12-31"

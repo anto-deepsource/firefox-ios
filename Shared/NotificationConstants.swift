@@ -46,8 +46,6 @@ extension Notification.Name {
 
     public static let DynamicFontChanged = Notification.Name("DynamicFontChanged")
 
-    public static let UserInitiatedSyncManually = Notification.Name("UserInitiatedSyncManually")
-
     public static let FaviconDidLoad = Notification.Name("FaviconDidLoad")
 
     public static let ReachabilityStatusChanged = Notification.Name("ReachabilityStatusChanged")
@@ -55,11 +53,6 @@ extension Notification.Name {
     public static let HomePanelPrefsChanged = Notification.Name("HomePanelPrefsChanged")
 
     public static let FileDidDownload = Notification.Name("FileDidDownload")
-
-    public static let DisplayThemeChanged = Notification.Name("DisplayThemeChanged")
-
-    // This will eventually replace DisplayThemeChanged
-    public static let ThemeDidChange = Notification.Name("ThemeDidChange")
 
     public static let SearchBarPositionDidChange = Notification.Name("SearchBarPositionDidChange")
 
@@ -96,10 +89,12 @@ extension Notification.Name {
 
     // MARK: Settings
 
+    public static let BlockPopup = Notification.Name("BlockPopup")
     public static let BookmarksUpdated = Notification.Name("BookmarksUpdated")
     public static let ReadingListUpdated = Notification.Name("ReadingListUpdated")
     public static let TopSitesUpdated = Notification.Name("TopSitesUpdated")
     public static let HistoryUpdated = Notification.Name("HistoryUpdated")
+    public static let DefaultSearchEngineUpdated = Notification.Name("DefaultSearchEngineUpdated")
 
     public static let PresentIntroView = Notification.Name("PresentIntroView")
 }

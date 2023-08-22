@@ -9,7 +9,8 @@ import Common
 
 class IntroViewController: UIViewController,
                            OnboardingViewControllerProtocol,
-                           Themeable {
+                           Themeable,
+                           Notifiable {
     struct UX {
         static let closeButtonSize: CGFloat = 30
         static let closeHorizontalMargin: CGFloat = 24
@@ -24,9 +25,10 @@ class IntroViewController: UIViewController,
     var themeManager: ThemeManager
     var themeObserver: NSObjectProtocol?
     var userDefaults: UserDefaultsInterface
+    var hasRegisteredForDefaultBrowserNotification = false
 
     private lazy var closeButton: UIButton = .build { button in
-        button.setImage(UIImage(named: ImageIdentifiers.bottomSheetClose), for: .normal)
+        button.setImage(UIImage(named: StandardImageIdentifiers.ExtraLarge.crossCircleFill), for: .normal)
         button.addTarget(self, action: #selector(self.closeOnboarding), for: .touchUpInside)
         button.accessibilityIdentifier = AccessibilityIdentifiers.Onboarding.closeButton
     }
@@ -74,6 +76,10 @@ class IntroViewController: UIViewController,
         super.viewDidLoad()
         listenForThemeChange(view)
         populatePageController()
+    }
+
+    deinit {
+        notificationCenter.removeObserver(self)
     }
 
     // MARK: View setup
@@ -139,6 +145,35 @@ class IntroViewController: UIViewController,
         dismiss(animated: true, completion: nil)
     }
 
+    // MARK: - Notifiable
+    func handleNotifications(_ notification: Notification) {
+        switch notification.name {
+        case UIApplication.didEnterBackgroundNotification:
+            appDidEnterBackgroundNotification()
+        default:
+            break
+        }
+    }
+
+    func registerForNotification() {
+        if !hasRegisteredForDefaultBrowserNotification {
+            setupNotifications(forObserver: self,
+                               observing: [UIApplication.didEnterBackgroundNotification])
+            hasRegisteredForDefaultBrowserNotification = true
+        }
+    }
+
+    func appDidEnterBackgroundNotification() {
+        let currentViewModel = viewModel.availableCards[pageControl.currentPage].viewModel
+        guard currentViewModel.buttons.primary.action == .setDefaultBrowser
+                || currentViewModel.buttons.secondary?.action == .setDefaultBrowser
+        else { return }
+
+        showNextPage(
+            from: currentViewModel.name,
+            completionIfLastCard: { self.showNextPageCompletionForLastCard() })
+    }
+
     // MARK: - Themable
     func applyTheme() {
         let theme = themeManager.currentTheme
@@ -195,7 +230,7 @@ extension IntroViewController: OnboardingCardDelegate {
             askForNotificationPermission(from: cardName)
         case .nextCard:
             showNextPage(from: cardName) {
-                showNextPageCompletionForLastCard()
+                self.showNextPageCompletionForLastCard()
             }
         case .syncSignIn:
             let fxaPrams = FxALaunchParams(entrypoint: .introOnboarding, query: [:])
@@ -208,10 +243,12 @@ extension IntroViewController: OnboardingCardDelegate {
                 }
             }
         case .setDefaultBrowser:
+            registerForNotification()
             DefaultApplicationHelper().openSettings()
-        case .openDefaultBrowserPopup:
-            // TODO: https://mozilla-hub.atlassian.net/browse/FXIOS-5922
-            presentDefaultBrowserPopup()
+        case .openInstructionsPopup:
+            presentDefaultBrowserPopup(
+                from: cardName,
+                completionIfLastCard: { self.showNextPageCompletionForLastCard() })
         case .readPrivacyPolicy:
             presentPrivacyPolicy(
                 from: cardName,

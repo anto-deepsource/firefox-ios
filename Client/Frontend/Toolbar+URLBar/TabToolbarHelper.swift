@@ -56,11 +56,10 @@ enum MiddleButtonState {
 open class TabToolbarHelper: NSObject {
     let toolbar: TabToolbarProtocol
     let ImageReload = UIImage.templateImageNamed("nav-refresh")
-    let ImageStop = UIImage.templateImageNamed("nav-stop")
+    let ImageStop = UIImage.templateImageNamed(StandardImageIdentifiers.Large.cross)
     let ImageSearch = UIImage.templateImageNamed("search")
-    let ImageNewTab = UIImage.templateImageNamed("nav-add")
-    let ImageHome = UIImage.templateImageNamed("menu-Home")
-    var themeManager: ThemeManager
+    let ImageNewTab = UIImage.templateImageNamed(StandardImageIdentifiers.Large.plus)
+    let ImageHome = UIImage.templateImageNamed(StandardImageIdentifiers.Large.home)
 
     func setMiddleButtonState(_ state: MiddleButtonState) {
         let device = UIDevice.current.userInterfaceIdiom
@@ -91,24 +90,20 @@ open class TabToolbarHelper: NSObject {
     // Default state as reload
     var middleButtonState: MiddleButtonState = .home
 
-    func setTheme(forButtons buttons: [ThemeApplicable]) {
-        buttons.forEach { $0.applyTheme(theme: themeManager.currentTheme) }
-    }
-
-    init(toolbar: TabToolbarProtocol,
-         themeManager: ThemeManager = AppContainer.shared.resolve()) {
+    init(toolbar: TabToolbarProtocol) {
         self.toolbar = toolbar
-        self.themeManager = themeManager
         super.init()
 
-        toolbar.backButton.setImage(UIImage.templateImageNamed("nav-back")?.imageFlippedForRightToLeftLayoutDirection(), for: .normal)
+        toolbar.backButton.setImage(UIImage.templateImageNamed(StandardImageIdentifiers.Large.back)?.imageFlippedForRightToLeftLayoutDirection(), for: .normal)
         toolbar.backButton.accessibilityLabel = .TabToolbarBackAccessibilityLabel
         toolbar.backButton.accessibilityIdentifier = AccessibilityIdentifiers.Toolbar.backButton
         let longPressGestureBackButton = UILongPressGestureRecognizer(target: self, action: #selector(didLongPressBack))
         toolbar.backButton.addGestureRecognizer(longPressGestureBackButton)
         toolbar.backButton.addTarget(self, action: #selector(didClickBack), for: .touchUpInside)
 
-        toolbar.forwardButton.setImage(UIImage.templateImageNamed("nav-forward")?.imageFlippedForRightToLeftLayoutDirection(), for: .normal)
+        toolbar.forwardButton.setImage(
+            UIImage.templateImageNamed(StandardImageIdentifiers.Large.forward)?.imageFlippedForRightToLeftLayoutDirection(),
+            for: .normal)
         toolbar.forwardButton.accessibilityLabel = .TabToolbarForwardAccessibilityLabel
         toolbar.forwardButton.accessibilityIdentifier = AccessibilityIdentifiers.Toolbar.forwardButton
         let longPressGestureForwardButton = UILongPressGestureRecognizer(target: self, action: #selector(didLongPressForward))
@@ -116,7 +111,7 @@ open class TabToolbarHelper: NSObject {
         toolbar.forwardButton.addTarget(self, action: #selector(didClickForward), for: .touchUpInside)
 
         if UIDevice.current.userInterfaceIdiom == .phone {
-            toolbar.multiStateButton.setImage(UIImage.templateImageNamed("menu-Home"), for: .normal)
+            toolbar.multiStateButton.setImage(UIImage.templateImageNamed(StandardImageIdentifiers.Large.home), for: .normal)
         } else {
             toolbar.multiStateButton.setImage(UIImage.templateImageNamed("nav-refresh"), for: .normal)
         }
@@ -132,29 +127,29 @@ open class TabToolbarHelper: NSObject {
         toolbar.tabsButton.addGestureRecognizer(longPressGestureTabsButton)
         toolbar.tabsButton.accessibilityIdentifier = AccessibilityIdentifiers.Toolbar.tabsButton
 
-        toolbar.addNewTabButton.setImage(UIImage.templateImageNamed("menu-NewTab"), for: .normal)
+        toolbar.addNewTabButton.setImage(UIImage.templateImageNamed(StandardImageIdentifiers.Large.plus), for: .normal)
         toolbar.addNewTabButton.accessibilityLabel = .AddTabAccessibilityLabel
         toolbar.addNewTabButton.addTarget(self, action: #selector(didClickAddNewTab), for: .touchUpInside)
         toolbar.addNewTabButton.accessibilityIdentifier = AccessibilityIdentifiers.Toolbar.addNewTabButton
 
         toolbar.appMenuButton.contentMode = .center
-        toolbar.appMenuButton.setImage(UIImage.templateImageNamed("nav-menu"), for: .normal)
+        toolbar.appMenuButton.setImage(UIImage.templateImageNamed(StandardImageIdentifiers.Large.appMenu), for: .normal)
         toolbar.appMenuButton.accessibilityLabel = .AppMenu.Toolbar.MenuButtonAccessibilityLabel
         toolbar.appMenuButton.addTarget(self, action: #selector(didClickMenu), for: .touchUpInside)
         toolbar.appMenuButton.accessibilityIdentifier = AccessibilityIdentifiers.Toolbar.settingsMenuButton
 
         toolbar.homeButton.contentMode = .center
-        toolbar.homeButton.setImage(UIImage.templateImageNamed("menu-Home"), for: .normal)
+        toolbar.homeButton.setImage(UIImage.templateImageNamed(StandardImageIdentifiers.Large.home), for: .normal)
         toolbar.homeButton.accessibilityLabel = .AppMenu.Toolbar.HomeMenuButtonAccessibilityLabel
         toolbar.homeButton.addTarget(self, action: #selector(didClickHome), for: .touchUpInside)
         toolbar.homeButton.accessibilityIdentifier = AccessibilityIdentifiers.Toolbar.homeButton
 
         toolbar.bookmarksButton.contentMode = .center
-        toolbar.bookmarksButton.setImage(UIImage.templateImageNamed(ImageIdentifiers.bookmarks), for: .normal)
+        toolbar.bookmarksButton.setImage(UIImage.templateImageNamed(StandardImageIdentifiers.Large.bookmarkTrayFill),
+                                         for: .normal)
         toolbar.bookmarksButton.accessibilityLabel = .AppMenu.Toolbar.BookmarksButtonAccessibilityLabel
         toolbar.bookmarksButton.addTarget(self, action: #selector(didClickLibrary), for: .touchUpInside)
         toolbar.bookmarksButton.accessibilityIdentifier = AccessibilityIdentifiers.Toolbar.bookmarksButton
-        setTheme(forButtons: toolbar.actionButtons)
     }
 
     func didClickBack() {

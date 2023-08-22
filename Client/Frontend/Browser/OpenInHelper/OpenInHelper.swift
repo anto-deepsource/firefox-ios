@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Foundation
 import MobileCoreServices
 import WebKit
@@ -120,11 +121,12 @@ class DownloadHelper: NSObject {
 
         filenameItem.customRender = { label, contentView in
             label.numberOfLines = 2
-            label.font = DynamicFontHelper.defaultHelper.DeviceFontSmallBold
+            label.font = LegacyDynamicFontHelper.defaultHelper.DeviceFontSmallBold
             label.lineBreakMode = .byCharWrapping
         }
 
-        let downloadFileItem = SingleActionViewModel(title: .OpenInDownloadHelperAlertDownloadNow, iconString: "download") { _ in
+        let downloadFileItem = SingleActionViewModel(title: .OpenInDownloadHelperAlertDownloadNow,
+                                                     iconString: StandardImageIdentifiers.Large.download) { _ in
             okAction(download)
             TelemetryWrapper.recordEvent(category: .action, method: .tap, object: .downloadNowButton)
         }

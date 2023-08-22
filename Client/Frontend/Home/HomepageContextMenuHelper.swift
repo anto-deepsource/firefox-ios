@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Foundation
 import Shared
 import Storage
@@ -25,13 +26,18 @@ class HomepageContextMenuHelper: HomepageContextMenuProtocol {
     typealias ContextHelperDelegate = HomepageContextMenuHelperDelegate & UIPopoverPresentationControllerDelegate
     typealias SendToDeviceDelegate = InstructionsViewDelegate & DevicePickerViewControllerDelegate
     private var viewModel: HomepageViewModel
+    private let toastContainer: UIView
     weak var sendToDeviceDelegate: SendToDeviceDelegate?
-
+    weak var browserNavigationHandler: BrowserNavigationHandler?
     weak var delegate: ContextHelperDelegate?
     var getPopoverSourceRect: ((UIView?) -> CGRect)?
 
-    init(viewModel: HomepageViewModel) {
+    init(
+        viewModel: HomepageViewModel,
+        toastContainer: UIView
+    ) {
         self.viewModel = viewModel
+        self.toastContainer = toastContainer
     }
 
     func presentContextMenu(for site: Site,
@@ -77,10 +83,10 @@ class HomepageContextMenuHelper: HomepageContextMenuProtocol {
     }
 
     // MARK: - Default actions
-
-    func getOpenInNewPrivateTabAction(siteURL: URL) -> PhotonRowActions {
+    func getOpenInNewPrivateTabAction(siteURL: URL, sectionType: HomepageSectionType) -> PhotonRowActions {
         return SingleActionViewModel(title: .OpenInNewPrivateTabContextMenuTitle, iconString: ImageIdentifiers.newPrivateTab) { _ in
             self.delegate?.homePanelDidRequestToOpenInNewTab(siteURL, isPrivate: true)
+            sectionType.newPrivateTabActionTelemetry()
         }.items
     }
 
@@ -88,7 +94,7 @@ class HomepageContextMenuHelper: HomepageContextMenuProtocol {
 
     private func getHistoryHighlightsActions(for highlightItem: HighlightItem) -> [PhotonRowActions]? {
         return [SingleActionViewModel(title: .RemoveContextMenuTitle,
-                                      iconString: ImageIdentifiers.actionRemove,
+                                      iconString: StandardImageIdentifiers.Large.cross,
                                       tapHandler: { _ in
             self.viewModel.historyHighlightsViewModel.delete(highlightItem)
             self.sendHistoryHighlightContextualTelemetry(type: .remove)
@@ -101,7 +107,7 @@ class HomepageContextMenuHelper: HomepageContextMenuProtocol {
         guard let siteURL = site.url.asURL else { return nil }
 
         let openInNewTabAction = getOpenInNewTabAction(siteURL: siteURL, sectionType: .pocket)
-        let openInNewPrivateTabAction = getOpenInNewPrivateTabAction(siteURL: siteURL)
+        let openInNewPrivateTabAction = getOpenInNewPrivateTabAction(siteURL: siteURL, sectionType: .pocket)
         let shareAction = getShareAction(site: site, sourceView: sourceView)
         let bookmarkAction = getBookmarkAction(site: site)
 
@@ -109,7 +115,7 @@ class HomepageContextMenuHelper: HomepageContextMenuProtocol {
     }
 
     private func getOpenInNewTabAction(siteURL: URL, sectionType: HomepageSectionType) -> PhotonRowActions {
-        return SingleActionViewModel(title: .OpenInNewTabContextMenuTitle, iconString: ImageIdentifiers.newTab) { _ in
+        return SingleActionViewModel(title: .OpenInNewTabContextMenuTitle, iconString: StandardImageIdentifiers.Large.plus) { _ in
             self.delegate?.homePanelDidRequestToOpenInNewTab(siteURL, isPrivate: false)
 
             if sectionType == .pocket {
@@ -133,7 +139,9 @@ class HomepageContextMenuHelper: HomepageContextMenuProtocol {
     }
 
     private func getRemoveBookmarkAction(site: Site) -> SingleActionViewModel {
-        return SingleActionViewModel(title: .RemoveBookmarkContextMenuTitle, iconString: ImageIdentifiers.actionRemoveBookmark, tapHandler: { _ in
+        return SingleActionViewModel(title: .RemoveBookmarkContextMenuTitle,
+                                     iconString: StandardImageIdentifiers.Large.bookmarkSlash,
+                                     tapHandler: { _ in
             self.viewModel.profile.places.deleteBookmarksWithURL(url: site.url) >>== {
                 site.setBookmarked(false)
             }
@@ -143,7 +151,9 @@ class HomepageContextMenuHelper: HomepageContextMenuProtocol {
     }
 
     private func getAddBookmarkAction(site: Site) -> SingleActionViewModel {
-        return SingleActionViewModel(title: .BookmarkContextMenuTitle, iconString: ImageIdentifiers.actionAddBookmark, tapHandler: { _ in
+        return SingleActionViewModel(title: .BookmarkContextMenuTitle,
+                                     iconString: StandardImageIdentifiers.Large.bookmark,
+                                     tapHandler: { _ in
             let shareItem = ShareItem(url: site.url, title: site.title)
             // Add new mobile bookmark at the top of the list
             _ = self.viewModel.profile.places.createBookmark(parentGUID: BookmarkRoots.MobileFolderGUID,
@@ -172,27 +182,35 @@ class HomepageContextMenuHelper: HomepageContextMenuProtocol {
         return SingleActionViewModel(title: .ShareContextMenuTitle, iconString: ImageIdentifiers.share, tapHandler: { _ in
             guard let url = URL(string: site.url) else { return }
 
-            let helper = ShareExtensionHelper(url: url, tab: nil)
-            let controller = helper.createActivityViewController { (_, activityType) in
-                switch activityType {
-                case CustomActivityAction.sendToDevice.actionType:
-                    self.showSendToDevice(site: site)
-                case CustomActivityAction.copyLink.actionType:
-                    self.delegate?.showToast(message: .AppMenu.AppMenuCopyURLConfirmMessage)
-                default: break
+            if CoordinatorFlagManager.isShareExtensionCoordinatorEnabled {
+                self.browserNavigationHandler?.showShareExtension(
+                    url: url,
+                    sourceView: sourceView ?? UIView(),
+                    toastContainer: self.toastContainer,
+                    popoverArrowDirection: [.up, .down, .left])
+            } else {
+                let helper = ShareExtensionHelper(url: url, tab: nil)
+                let controller = helper.createActivityViewController { (_, activityType) in
+                    switch activityType {
+                    case CustomActivityAction.sendToDevice.actionType:
+                        self.showSendToDevice(site: site)
+                    case CustomActivityAction.copyLink.actionType:
+                        self.delegate?.showToast(message: .AppMenu.AppMenuCopyURLConfirmMessage)
+                    default: break
+                    }
                 }
-            }
 
-            if UIDevice.current.userInterfaceIdiom == .pad,
-               let popoverController = controller.popoverPresentationController,
-               let getSourceRect = self.getPopoverSourceRect {
-                popoverController.sourceView = sourceView
-                popoverController.sourceRect = getSourceRect(sourceView)
-                popoverController.permittedArrowDirections = [.up, .down, .left]
-                popoverController.delegate = self.delegate
-            }
+                if UIDevice.current.userInterfaceIdiom == .pad,
+                   let popoverController = controller.popoverPresentationController,
+                   let getSourceRect = self.getPopoverSourceRect {
+                    popoverController.sourceView = sourceView
+                    popoverController.sourceRect = getSourceRect(sourceView)
+                    popoverController.permittedArrowDirections = [.up, .down, .left]
+                    popoverController.delegate = self.delegate
+                }
 
-            self.delegate?.presentWithModalDismissIfNeeded(controller, animated: true)
+                self.delegate?.presentWithModalDismissIfNeeded(controller, animated: true)
+            }
         }).items
     }
 
@@ -223,15 +241,15 @@ class HomepageContextMenuHelper: HomepageContextMenuProtocol {
         let topSiteActions: [PhotonRowActions]
         if let site = site as? PinnedSite {
             topSiteActions = [getRemovePinTopSiteAction(site: site),
-                              getOpenInNewPrivateTabAction(siteURL: siteURL),
+                              getOpenInNewPrivateTabAction(siteURL: siteURL, sectionType: .topSites),
                               getRemoveTopSiteAction(site: site)]
         } else if site as? SponsoredTile != nil {
-            topSiteActions = [getOpenInNewPrivateTabAction(siteURL: siteURL),
+            topSiteActions = [getOpenInNewPrivateTabAction(siteURL: siteURL, sectionType: .topSites),
                               getSettingsAction(),
                               getSponsoredContentAction()]
         } else {
             topSiteActions = [getPinTopSiteAction(site: site),
-                              getOpenInNewPrivateTabAction(siteURL: siteURL),
+                              getOpenInNewPrivateTabAction(siteURL: siteURL, sectionType: .topSites),
                               getRemoveTopSiteAction(site: site)]
         }
         return topSiteActions
@@ -240,7 +258,7 @@ class HomepageContextMenuHelper: HomepageContextMenuProtocol {
     // Removes the site out of the top sites. If site is pinned it removes it from pinned and remove
     private func getRemoveTopSiteAction(site: Site) -> PhotonRowActions {
         return SingleActionViewModel(title: .RemoveContextMenuTitle,
-                                     iconString: ImageIdentifiers.actionRemove,
+                                     iconString: StandardImageIdentifiers.Large.cross,
                                      tapHandler: { _ in
             self.viewModel.topSiteViewModel.removePinTopSite(site)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
@@ -253,7 +271,7 @@ class HomepageContextMenuHelper: HomepageContextMenuProtocol {
 
     private func getPinTopSiteAction(site: Site) -> PhotonRowActions {
         return SingleActionViewModel(title: .PinTopsiteActionTitle2,
-                                     iconString: ImageIdentifiers.addShortcut,
+                                     iconString: StandardImageIdentifiers.Large.pin,
                                      tapHandler: { _ in
             self.viewModel.topSiteViewModel.pinTopSite(site)
             self.sendTopSiteContextualTelemetry(type: .pin)
@@ -263,7 +281,7 @@ class HomepageContextMenuHelper: HomepageContextMenuProtocol {
     // Unpin removes it from the location it's in. Still can appear in the top sites as unpin
     private func getRemovePinTopSiteAction(site: Site) -> PhotonRowActions {
         return SingleActionViewModel(title: .UnpinTopsiteActionTitle2,
-                                     iconString: ImageIdentifiers.removeFromShortcut,
+                                     iconString: StandardImageIdentifiers.Large.pinSlash,
                                      tapHandler: { _ in
             self.viewModel.topSiteViewModel.removePinTopSite(site)
             self.sendTopSiteContextualTelemetry(type: .unpin)
@@ -278,7 +296,9 @@ class HomepageContextMenuHelper: HomepageContextMenuProtocol {
     }
 
     private func getSponsoredContentAction() -> PhotonRowActions {
-        return SingleActionViewModel(title: .FirefoxHomepage.ContextualMenu.SponsoredContent, iconString: ImageIdentifiers.help, tapHandler: { _ in
+        return SingleActionViewModel(title: .FirefoxHomepage.ContextualMenu.SponsoredContent,
+                                     iconString: StandardImageIdentifiers.Large.helpCircle,
+                                     tapHandler: { _ in
             guard let url = SupportUtils.URLForTopic("sponsor-privacy") else { return }
             self.delegate?.homePanelDidRequestToOpenInNewTab(url, isPrivate: false, selectNewTab: true)
             self.sendTopSiteContextualTelemetry(type: .sponsoredSupport)

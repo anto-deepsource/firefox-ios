@@ -58,7 +58,7 @@ class LegacyTabManager: NSObject, FeatureFlaggable, TabManager, TabEventHandler 
     var tabs = [Tab]()
     private var _selectedIndex = -1
     var selectedIndex: Int { return _selectedIndex }
-    private let logger: Logger
+    let logger: Logger
     var backupCloseTab: BackupCloseTab?
 
     var tabDisplayType: TabDisplayType = .TabGrid
@@ -69,6 +69,19 @@ class LegacyTabManager: NSObject, FeatureFlaggable, TabManager, TabEventHandler 
 
     var normalTabs: [Tab] {
         return tabs.filter { !$0.isPrivate }
+    }
+
+    var normalActiveTabs: [Tab] {
+        return InactiveTabViewModel.getActiveEligibleTabsFrom(normalTabs,
+                                                              profile: profile)
+    }
+
+    var inactiveTabs: [Tab] {
+        let normalTabs = Set(normalTabs)
+        let normalActiveTabs = Set(normalActiveTabs)
+
+        let inactiveTabs = normalTabs.subtracting(normalActiveTabs)
+        return Array(inactiveTabs)
     }
 
     var privateTabs: [Tab] {
@@ -110,7 +123,6 @@ class LegacyTabManager: NSObject, FeatureFlaggable, TabManager, TabEventHandler 
         if !(0..<count ~= _selectedIndex) {
             return nil
         }
-
         return tabs[_selectedIndex]
     }
 
@@ -146,8 +158,10 @@ class LegacyTabManager: NSObject, FeatureFlaggable, TabManager, TabEventHandler 
         register(self, forTabEvents: .didSetScreenshot)
 
         addNavigationDelegate(self)
-
-        NotificationCenter.default.addObserver(self, selector: #selector(prefsDidChange), name: UserDefaults.didChangeNotification, object: nil)
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(blockPopUpDidChange),
+                                               name: .BlockPopup,
+                                               object: nil)
     }
 
     // MARK: - Delegates
@@ -176,22 +190,6 @@ class LegacyTabManager: NSObject, FeatureFlaggable, TabManager, TabEventHandler 
     }
 
     // MARK: - Webview configuration
-    public static func makeWebViewConfig(isPrivate: Bool, prefs: Prefs?) -> WKWebViewConfiguration {
-        let configuration = WKWebViewConfiguration()
-        configuration.dataDetectorTypes = [.phoneNumber]
-        configuration.processPool = WKProcessPool()
-        let blockPopups = prefs?.boolForKey(PrefsKeys.KeyBlockPopups) ?? true
-        configuration.preferences.javaScriptCanOpenWindowsAutomatically = !blockPopups
-        // We do this to go against the configuration of the <meta name="viewport">
-        // tag to behave the same way as Safari :-(
-        configuration.ignoresViewportScaleLimits = true
-        if isPrivate {
-            configuration.websiteDataStore = WKWebsiteDataStore.nonPersistent()
-        }
-        configuration.setURLSchemeHandler(InternalSchemeHandler(), forURLScheme: InternalURL.scheme)
-        return configuration
-    }
-
     // A WKWebViewConfiguration used for normal tabs
     lazy private var configuration: WKWebViewConfiguration = {
         return LegacyTabManager.makeWebViewConfig(isPrivate: false, prefs: profile.prefs)
@@ -201,6 +199,24 @@ class LegacyTabManager: NSObject, FeatureFlaggable, TabManager, TabEventHandler 
     lazy private var privateConfiguration: WKWebViewConfiguration = {
         return LegacyTabManager.makeWebViewConfig(isPrivate: true, prefs: profile.prefs)
     }()
+
+    public static func makeWebViewConfig(isPrivate: Bool, prefs: Prefs?) -> WKWebViewConfiguration {
+        let configuration = WKWebViewConfiguration()
+        configuration.processPool = WKProcessPool()
+        let blockPopups = prefs?.boolForKey(PrefsKeys.KeyBlockPopups) ?? true
+        configuration.preferences.javaScriptCanOpenWindowsAutomatically = !blockPopups
+        // We do this to go against the configuration of the <meta name="viewport">
+        // tag to behave the same way as Safari :-(
+        configuration.ignoresViewportScaleLimits = true
+        if isPrivate {
+            configuration.websiteDataStore = WKWebsiteDataStore.nonPersistent()
+        } else {
+            configuration.websiteDataStore = WKWebsiteDataStore.default()
+        }
+
+        configuration.setURLSchemeHandler(InternalSchemeHandler(), forURLScheme: InternalURL.scheme)
+        return configuration
+    }
 
     // MARK: Get tabs
     func getTabFor(_ url: URL) -> Tab? {
@@ -298,7 +314,7 @@ class LegacyTabManager: NSObject, FeatureFlaggable, TabManager, TabEventHandler 
         store.preserveTabs(tabs, selectedTab: selectedTab)
     }
 
-    private func shouldClearPrivateTabs() -> Bool {
+    func shouldClearPrivateTabs() -> Bool {
         return profile.prefs.boolForKey("settings.closePrivateTabs") ?? false
     }
 
@@ -358,7 +374,7 @@ class LegacyTabManager: NSObject, FeatureFlaggable, TabManager, TabEventHandler 
 
         // If tabToSelect is nil after restoration, force selection of first tab normal tab
         if tabToSelect == nil {
-            tabToSelect = tabs.first(where: { $0.isPrivate == false })
+            tabToSelect = tabs.first(where: { !$0.isPrivate })
 
             // If tabToSelect is still nil, create a new tab
             if tabToSelect == nil {
@@ -538,7 +554,7 @@ class LegacyTabManager: NSObject, FeatureFlaggable, TabManager, TabEventHandler 
             case .blankPage:
                 // If we're showing "about:blank" in a webview, set
                 // the <html> `background-color` to match the theme.
-                if let webView = tab.webView as? TabWebView {
+                if let webView = tab.webView {
                     webView.applyTheme()
                 }
                 break
@@ -684,7 +700,7 @@ class LegacyTabManager: NSObject, FeatureFlaggable, TabManager, TabEventHandler 
                                                           _ previousTabUUID: String) -> Void) {
         let previousSelectedTabUUID = selectedTab?.tabUUID ?? ""
         // moved closing of multiple tabs to background thread
-        DispatchQueue.global(qos: .background).async { [unowned self] in
+        DispatchQueue.global().async { [unowned self] in
             let tabsToRemove = isPrivate ? self.privateTabs : self.normalTabs
 
             if isPrivate && self.privateTabs.count < 1 {
@@ -761,7 +777,7 @@ class LegacyTabManager: NSObject, FeatureFlaggable, TabManager, TabEventHandler 
                 NotificationCenter.default.post(name: .DidTapUndoCloseAllTabToast, object: nil)
             } else {
                 // Finish clean up for recently close tabs
-                DispatchQueue.global(qos: .background).async { [unowned self] in
+                DispatchQueue.global().async { [unowned self] in
                     let previousTab = tabs.first(where: { $0.tabUUID == previousTabUUID })
 
                     self.cleanupClosedTabs(recentlyClosedTabs,
@@ -796,17 +812,15 @@ class LegacyTabManager: NSObject, FeatureFlaggable, TabManager, TabEventHandler 
 
     // MARK: - Private
     @objc
-    private func prefsDidChange() {
-        DispatchQueue.main.async {
-            let allowPopups = !(self.profile.prefs.boolForKey(PrefsKeys.KeyBlockPopups) ?? true)
-            // Each tab may have its own configuration, so we should tell each of them in turn.
-            for tab in self.tabs {
-                tab.webView?.configuration.preferences.javaScriptCanOpenWindowsAutomatically = allowPopups
-            }
-            // The default tab configurations also need to change.
-            self.configuration.preferences.javaScriptCanOpenWindowsAutomatically = allowPopups
-            self.privateConfiguration.preferences.javaScriptCanOpenWindowsAutomatically = allowPopups
+    private func blockPopUpDidChange() {
+        let allowPopups = !(profile.prefs.boolForKey(PrefsKeys.KeyBlockPopups) ?? true)
+        // Each tab may have its own configuration, so we should tell each of them in turn.
+        for tab in tabs {
+            tab.webView?.configuration.preferences.javaScriptCanOpenWindowsAutomatically = allowPopups
         }
+        // The default tab configurations also need to change.
+        configuration.preferences.javaScriptCanOpenWindowsAutomatically = allowPopups
+        privateConfiguration.preferences.javaScriptCanOpenWindowsAutomatically = allowPopups
     }
 
     // returns all activate tabs (private or normal)
@@ -865,20 +879,23 @@ class LegacyTabManager: NSObject, FeatureFlaggable, TabManager, TabEventHandler 
     }
 
     func undoCloseTab(tab: Tab, position: Int?) {
-        let tabToSelect = selectedTab
         if let index = position {
             tabs.insert(tab, at: index)
         } else {
             tabs.append(tab)
         }
 
-        // Select previous selected tab
-        if let tabToSelect = tabToSelect {
-            selectTab(tabToSelect, previous: nil)
-        }
-
         delegates.forEach { $0.get()?.tabManagerUpdateCount() }
         storeChanges()
+
+        // Select previous selected tab
+        let tabUUID = selectedTab?.tabUUID
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(50)) {
+            if let tabUUID = tabUUID,
+               let tabToSelect = self.tabs.first(where: { $0.tabUUID == tabUUID }) {
+                self.selectTab(tabToSelect)
+            }
+        }
     }
 
     // Select the most recently visited tab, IFF it is also the parent tab of the closed tab.
@@ -926,6 +943,10 @@ class LegacyTabManager: NSObject, FeatureFlaggable, TabManager, TabEventHandler 
             let tabToSelect = createStartAtHomeTab(withExistingTab: existingHomeTab,
                                                    inPrivateMode: wasLastSessionPrivate,
                                                    and: profile.prefs)
+
+            logger.log("Start at home triggered with last session private \(wasLastSessionPrivate)",
+                       level: .debug,
+                       category: .tabs)
             selectTab(tabToSelect)
         }
     }

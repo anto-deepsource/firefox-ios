@@ -15,15 +15,8 @@ features:
       cards:
         description: >
           The list of available cards for onboarding.
-        type: List<NimbusOnboardingCardData>
-        default: []
-      card-ordering:
-        description: >
-          A list of card names in the order they should appear.
-          These names should match the names of the cards in the
-          "card" variable, otherwise, they will be excluded.
-        type: List<String>
-        default: []
+        type: Map<String, NimbusOnboardingCardData>
+        default: {}
       dismissable:
         description: >
           Whether or not the entire onboarding is dismissable
@@ -37,31 +30,41 @@ features:
             ALWAYS:                   "true"
             NEVER:                    "false"
           cards:
-            - name: "welcome"
-              title: Onboarding/Onboarding.Welcome.Title.v114
-              body: Onboarding/Onboarding.Welcome.Description.v114
+            welcome:
+              order: 10
+              title: Onboarding/Onboarding.Welcome.Title.TreatementA.v114
+              body: Onboarding/Onboarding.Welcome.Description.TreatementA.v114
               image: welcome-globe
               link:
                 title: Onboarding/Onboarding.Welcome.Link.Action.v114
-                url: "https://www.mozilla.org/en-US/privacy/firefox/"
+                url: "https://www.mozilla.org/privacy/firefox/"
               buttons:
                 primary:
-                  title: Onboarding/Onboarding.Welcome.Action.v114
+                  title: Onboarding/Onboarding.Welcome.ActionTreatementA.v114
+                  action: set-default-browser
+                secondary:
+                  title: Onboarding/Onboarding.Welcome.Skip.v114
                   action: next-card
               type: fresh-install
-            - name: "notificationPermissions"
+              prerequisites:
+                - ALWAYS
+            notification-permissions:
+              order: 30
               title: Onboarding/Onboarding.Notification.Title.v114
               body: Onboarding/Onboarding.Notification.Description.v114
               image: notifications
               buttons:
                 primary:
-                  title: Onboarding/Onboarding.Notification.Continue.Action.v114
+                  title: Onboarding/Onboarding.Notification.TurnOnNotifications.Action.v114
                   action: request-notifications
                 secondary:
-                  title: Onboarding/Onboarding.Notification.Skip.Action.v114
+                  title: Onboarding/Onboarding.Notification.Skip.Action.v115
                   action: next-card
               type: fresh-install
-            - name: "signToSync"
+              prerequisites:
+                - ALWAYS
+            sign-to-sync:
+              order: 20
               title: Onboarding/Onboarding.Sync.Title.v114
               body: Onboarding/Onboarding.Sync.Description.v114
               image: sync-devices
@@ -73,7 +76,10 @@ features:
                   title: Onboarding/Onboarding.Sync.Skip.Action.v114
                   action: next-card
               type: fresh-install
-            - name: "update.welcome"
+              prerequisites:
+                - ALWAYS
+            update-welcome:
+              order: 10
               title: Upgrade/Upgrade.Welcome.Title.v114
               body: Upgrade/Upgrade.Welcome.Description.v114
               image: welcome-globe
@@ -82,7 +88,10 @@ features:
                   title: Upgrade/Upgrade.Welcome.Action.v114
                   action: next-card
               type: upgrade
-            - name: "update.signToSync"
+              prerequisites:
+                - ALWAYS
+            update-sign-to-sync:
+              order: 20
               title: Upgrade/Upgrade.SyncSign.Title.v114
               body: Upgrade/Upgrade.SyncSign.Description.v114
               image: sync-devices
@@ -94,12 +103,8 @@ features:
                   title: Onboarding/Onboarding.LaterAction.v114
                   action: next-card
               type: upgrade
-          card-ordering:
-            - "welcome"
-            - "signToSync"
-            - "notificationPermissions"
-            - "update.welcome"
-            - "update.signToSync"
+              prerequisites:
+                - ALWAYS
           dismissable: true
 
 objects:
@@ -107,15 +112,12 @@ objects:
     description: >
       A group of properties describing the attributes of a card.
     fields:
-      name:
-        type: String
+      order:
+        type: Int
         description: >
-          The name of the card. It should be unique in the current
-          roster of cards.
-          This should never be defaulted.
-          This is going to be used as the telemetry value for the
-          card in question.
-        default: ""
+          The place in the order where the card will be found.
+          The feature layer will then sort the cards based on this field.
+        default: 10
       title:
         type: Text
         description: >
@@ -145,23 +147,31 @@ objects:
           The set of buttons associated with the card.
         default:
           primary:
-            title: "Primary Button"
+            title: Onboarding/Onboarding.Sync.Skip.Action.v114
             action: next-card
           secondary: null
+      instructions-popup:
+        type: Option<NimbusInstructionPopup>
+        description: >
+          The object describing the specific instruction popup
+          button for a card.
+          If left empty, the card will have no instruction
+          popup information
+        default: null
       prerequisites:
         type: List<String>
         description: >
           A list of strings corresponding to targeting expressions.
-          The card will be shown if all expressions `true`.
-        default:
-          - ALWAYS
+          The card will be shown if all expressions `true` and if
+          no expressions in the `disqualifiers` table are true, or
+          if the `disqualifiers` table is empty.
+        default: []
       disqualifiers:
         type: List<String>
         description: >
           A list of strings corresponding to targeting expressions.
           The card will not be shown if any expression is `true`.
-        default:
-          - NEVER
+        default: []
       type:
         type: OnboardingType
         description: >
@@ -178,12 +188,12 @@ objects:
         type: Text
         description: >
           The text of the link title.
-        default: "Learn more about our privacy policy"
+        default: Onboarding/Onboarding.Welcome.Link.Action.v114
       url:
         type: String
         description: >
           The url that the link will lead to.
-        default: "https://macrumors.com"
+        default: "https://www.mozilla.org/privacy/firefox/"
   NimbusOnboardingButtons:
     description: >
       A set of buttons for the card. There can be up to two, but
@@ -217,6 +227,33 @@ objects:
           The action the button should take.
           The default for this will be "next-card"
         default: next-card
+  NimbusInstructionPopup:
+    description: >
+      The object outlining the content of the instruction card.
+    fields:
+      title:
+        type: Text
+        description: >
+          The text of the popup.
+          This should never be defaulted.
+        default: ""
+      instructions:
+        type: List<Text>
+        description: >
+          A list of instructions, either as free text, or as Text identifiers.
+        default: []
+      button-title:
+        type: Text
+        description: >
+          The title the button should have.
+          This should never be defaulted.
+        default: ""
+      button-action:
+        type: OnboardingInstructionsPopupActions
+        description: >
+          The action the button should have.
+          Default is `dismiss-and-next-card`
+        default: dismiss-and-next-card
 
 enums:
   OnboardingActions:
@@ -235,26 +272,52 @@ enums:
       set-default-browser:
         description: >
           Will send the user to settings to set Firefox as their default browser
-      open-default-browser-popup:
+      open-instructions-popup:
         description: >
-          Will open up a popup with instructions for setting
-          Firefox as their default browser.
+          Will open up a popup with instructions for something
       read-privacy-policy:
         description: >
           Will open a webview where the user can read the privacy policy
+  OnboardingInstructionsPopupActions:
+    description: >
+      The identifiers for the different actions available for the
+      insturction card in onboarding
+    variants:
+      open-ios-fx-settings:
+        description: >
+          Will take the user to the default browser settings
+          in the iOS system settings
+      dismiss-and-next-card:
+        description: >
+          Will dismiss the popup and move to the next card
+      dismiss:
+        description: >
+          Will dismiss the popup
   NimbusOnboardingImages:
     description: >
       The identifiers for the different images available for cards in onboarding
     variants:
-      welcome-globe:
+      welcome-ctd:
         description: >
-          Corresponding to the fox world image
+          Corresponding to the welcome image for CTD
+      notifications-ctd:
+        description: >
+          Corresponding to the notifications image for CTD
+      sync-devices-ctd:
+        description: >
+          Corresponding to the sync image for CTD
       notifications:
         description: >
           Corresponding to the notifications image
       sync-devices:
         description: >
           Corresponding to the sync-devices image
+      set-to-dock:
+        description: >
+          Corresponding to the set to dock image
+      welcome-globe:
+        description: >
+          Corresponding to the fox world image
   OnboardingType:
     description: >
       The identifiers for the different types of onboarding cards.

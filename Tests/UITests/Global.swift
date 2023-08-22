@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Foundation
 import GCDWebServers
 import Storage
@@ -287,7 +288,7 @@ class BrowserUtils {
 
     class func closeClearPrivateDataDialog(_ tester: KIFUITestActor) {
         tester.tapView(withAccessibilityLabel: "Settings")
-        tester.tapView(withAccessibilityIdentifier: "AppSettingsTableViewController.navigationItem.leftBarButtonItem")
+        tester.tapView(withAccessibilityIdentifier: AccessibilityIdentifiers.Settings.navigationBarItem)
     }
 
     class func acceptClearPrivateData(_ tester: KIFUITestActor) {

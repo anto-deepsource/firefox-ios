@@ -2,10 +2,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import UIKit
 import Shared
 
-class TabToolbar: UIView {
+class TabToolbar: UIView, SearchBarLocationProvider {
     // MARK: - Variables
 
     weak var tabToolbarDelegate: TabToolbarDelegate?
@@ -20,7 +21,7 @@ class TabToolbar: UIView {
     let actionButtons: [ThemeApplicable & UIButton]
 
     private let privateModeBadge = BadgeWithBackdrop(imageName: ImageIdentifiers.privateModeBadge,
-                                                     backdropCircleColor: UIColor.LegacyDefaults.MobilePrivatePurple)
+                                                     isPrivateBadge: true)
     private let appMenuBadge = BadgeWithBackdrop(imageName: ImageIdentifiers.menuBadge)
     private let warningMenuBadge = BadgeWithBackdrop(imageName: ImageIdentifiers.menuWarning,
                                                      imageMask: ImageIdentifiers.menuWarningMask)
@@ -132,21 +133,18 @@ extension TabToolbar: TabToolbarProtocol {
     }
 }
 
-// MARK: - Search Bar location properties
-extension TabToolbar: SearchBarLocationProvider {}
-
 // MARK: - Theme protocols
 extension TabToolbar: ThemeApplicable, PrivateModeUI {
     func applyTheme(theme: Theme) {
         backgroundColor = theme.colors.layer1
-        helper?.setTheme(forButtons: actionButtons)
+        actionButtons.forEach { $0.applyTheme(theme: theme) }
 
         privateModeBadge.badge.tintBackground(color: theme.colors.layer1)
         appMenuBadge.badge.tintBackground(color: theme.colors.layer1)
         warningMenuBadge.badge.tintBackground(color: theme.colors.layer1)
     }
 
-    func applyUIMode(isPrivate: Bool) {
+    func applyUIMode(isPrivate: Bool, theme: Theme) {
         privateModeBadge(visible: isPrivate)
     }
 }

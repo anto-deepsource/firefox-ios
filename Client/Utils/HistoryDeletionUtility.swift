@@ -49,7 +49,10 @@ class HistoryDeletionUtility: HistoryDeletionProtocol {
             self.clearRecentlyClosedTabs(using: dateOption)
             completion(dateOption)
         }
+
         deleteProfileMetadataSince(dateOption)
+
+        reportDeletionFor(dateOption)
     }
 
     // MARK: URL based deletion functions
@@ -64,7 +67,7 @@ class HistoryDeletionUtility: HistoryDeletionProtocol {
         sites.forEach { currentSite in
             profile.places
                 .deleteVisitsFor(url: currentSite)
-                .uponQueue(.global(qos: .userInitiated)) { result in
+                .uponQueue(.global()) { result in
                     guard let lastSite = sites.last,
                           lastSite == currentSite
                     else { return }
@@ -94,12 +97,12 @@ class HistoryDeletionUtility: HistoryDeletionProtocol {
     ) {
         switch dateOption {
         case .allTime:
-            profile.places.deleteEverythingHistory().uponQueue(.global(qos: .userInteractive)) { result in
+            profile.places.deleteEverythingHistory().uponQueue(.global()) { result in
                 completion(result.isSuccess)
             }
         default:
             guard let date = dateFor(dateOption) else { return }
-            profile.places.deleteVisitsBetween(date).uponQueue(.global(qos: .userInteractive)) { result in
+            profile.places.deleteVisitsBetween(date).uponQueue(.global()) { result in
                 completion(result.isSuccess)
             }
         }
@@ -115,7 +118,7 @@ class HistoryDeletionUtility: HistoryDeletionProtocol {
     func deleteHistoryMetadataOlderThan(_ dateOption: HistoryDeletionUtilityDateOptions) {
         guard let date = dateFor(dateOption) else { return }
         let dateInMilliseconds = date.toMillisecondsSince1970()
-        self.profile.places.deleteHistoryMetadataOlderThan(olderThan: dateInMilliseconds).uponQueue(.global(qos: .userInteractive)) { _ in }
+        self.profile.places.deleteHistoryMetadataOlderThan(olderThan: dateInMilliseconds).uponQueue(.global()) { _ in }
     }
 
     private func clearRecentlyClosedTabs(using dateOption: HistoryDeletionUtilityDateOptions) {
@@ -154,6 +157,24 @@ class HistoryDeletionUtility: HistoryDeletionProtocol {
         case .allTime:
             let pastReferenceDate = Date(timeIntervalSinceReferenceDate: 0)
             return requiringAllTimeAsPresent ? Date() : pastReferenceDate
+        }
+    }
+
+    private func reportDeletionFor(_ dateOption: HistoryDeletionUtilityDateOptions) {
+        switch dateOption {
+        case .today:
+            TelemetryWrapper.recordEvent(category: .action,
+                                         method: .tap,
+                                         object: .historyRemovedToday)
+        case .yesterday:
+            TelemetryWrapper.recordEvent(category: .action,
+                                         method: .tap,
+                                         object: .historyRemovedTodayAndYesterday)
+        case .allTime:
+            TelemetryWrapper.recordEvent(category: .action,
+                                         method: .tap,
+                                         object: .historyRemovedAll)
+        default: break
         }
     }
 }

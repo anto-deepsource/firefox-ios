@@ -25,7 +25,6 @@ private struct SearchViewControllerUX {
     static let EngineButtonBackgroundColor = UIColor.clear.cgColor
 
     static let SearchImage = "search"
-    static let SearchAppendImage = "search-append"
     static let SearchEngineTopBorderWidth = 0.5
     static let SuggestionMargin: CGFloat = 8
 
@@ -79,7 +78,7 @@ class SearchViewController: SiteTableViewController,
     private let searchEngineScrollViewContent = UIView()
 
     private lazy var bookmarkedBadge: UIImage = {
-        return UIImage(named: "bookmark_results")!
+        return UIImage(named: StandardImageIdentifiers.Medium.bookmarkBadgeFillBlue50)!
     }()
 
     private lazy var openAndSyncTabBadge: UIImage = {
@@ -635,7 +634,7 @@ class SearchViewController: SiteTableViewController,
         guard searchPhrase != query, let upperBound = range?.upperBound else { return nil }
 
         let attributedString = searchPhrase.attributedText(boldIn: upperBound..<searchPhrase.endIndex,
-                                                           font: DynamicFontHelper().DefaultStandardFont)
+                                                           font: LegacyDynamicFontHelper().DefaultStandardFont)
         return attributedString
     }
 
@@ -674,8 +673,9 @@ class SearchViewController: SiteTableViewController,
                 twoLineCell.leftOverlayImageView.image = openAndSyncTabBadge
                 twoLineCell.leftImageView.layer.borderColor = SearchViewControllerUX.IconBorderColor.cgColor
                 twoLineCell.leftImageView.layer.borderWidth = SearchViewControllerUX.IconBorderWidth
-                let urlString = openedTab.url?.absoluteString ?? ""
-                twoLineCell.leftImageView.setFavicon(FaviconImageViewModel(siteURLString: urlString))
+                if let urlString = openedTab.url?.absoluteString {
+                    twoLineCell.leftImageView.setFavicon(FaviconImageViewModel(siteURLString: urlString))
+                }
                 twoLineCell.accessoryView = nil
                 cell = twoLineCell
             }
@@ -749,7 +749,7 @@ class SearchViewController: SiteTableViewController,
     }
 
     private var searchAppendImage: UIImage? {
-        var searchAppendImage = UIImage(named: SearchViewControllerUX.SearchAppendImage)
+        var searchAppendImage = UIImage(named: StandardImageIdentifiers.Large.appendUp)
 
         if viewModel.isBottomSearchBar, let image = searchAppendImage, let cgImage = image.cgImage {
             searchAppendImage = UIImage(

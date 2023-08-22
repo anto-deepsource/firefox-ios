@@ -4,11 +4,13 @@
 
 import UIKit
 import Common
+import ComponentLibrary
 import Shared
 
 class OnboardingCardViewController: UIViewController, Themeable {
     struct UX {
-        static let stackViewSpacing: CGFloat = 24
+        static let stackViewSpacingWithLink: CGFloat = 15
+        static let stackViewSpacingWithoutLink: CGFloat = 24
         static let stackViewSpacingButtons: CGFloat = 16
         static let buttonCornerRadius: CGFloat = 13
         static let topStackViewSpacing: CGFloat = 24
@@ -31,11 +33,13 @@ class OnboardingCardViewController: UIViewController, Themeable {
         static let smallTitleFontSize: CGFloat = 20
         static let smallStackViewSpacing: CGFloat = 8
         static let smallScrollViewVerticalPadding: CGFloat = 20
-        static let smallImageViewSize = CGSize(width: 240, height: 300)
+        static let smallImageViewSize = CGSize(width: 240, height: 280)
         static let smallTopStackViewPadding: CGFloat = 40
 
         // tiny device (SE 1st gen)
         static let tinyImageViewSize = CGSize(width: 144, height: 180)
+
+        static let baseImageHeight: CGFloat = 211
     }
 
     // MARK: - Properties
@@ -80,7 +84,6 @@ class OnboardingCardViewController: UIViewController, Themeable {
         stack.backgroundColor = .clear
         stack.alignment = .center
         stack.distribution = .equalSpacing
-        stack.spacing = UX.stackViewSpacing
         stack.axis = .vertical
     }
 
@@ -93,8 +96,8 @@ class OnboardingCardViewController: UIViewController, Themeable {
         label.numberOfLines = 0
         label.textAlignment = .center
         let fontSize = self.shouldUseSmallDeviceLayout ? UX.smallTitleFontSize : UX.titleFontSize
-        label.font = DynamicFontHelper.defaultHelper.preferredBoldFont(withTextStyle: .largeTitle,
-                                                                       size: fontSize)
+        label.font = DefaultDynamicFontHelper.preferredBoldFont(withTextStyle: .largeTitle,
+                                                                size: fontSize)
         label.adjustsFontForContentSizeCategory = true
         label.accessibilityIdentifier = "\(self.viewModel.a11yIdRoot)TitleLabel"
     }
@@ -102,8 +105,8 @@ class OnboardingCardViewController: UIViewController, Themeable {
     private lazy var descriptionLabel: UILabel = .build { label in
         label.numberOfLines = 0
         label.textAlignment = .center
-        label.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .body,
-                                                                   size: UX.descriptionFontSize)
+        label.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .body,
+                                                            size: UX.descriptionFontSize)
         label.adjustsFontForContentSizeCategory = true
         label.accessibilityIdentifier = "\(self.viewModel.a11yIdRoot)DescriptionLabel"
     }
@@ -111,12 +114,11 @@ class OnboardingCardViewController: UIViewController, Themeable {
     lazy var buttonStackView: UIStackView = .build { stack in
         stack.backgroundColor = .clear
         stack.distribution = .equalSpacing
-        stack.spacing = UX.stackViewSpacing
         stack.axis = .vertical
     }
 
     private lazy var primaryButton: ResizableButton = .build { button in
-        button.titleLabel?.font = DynamicFontHelper.defaultHelper.preferredBoldFont(
+        button.titleLabel?.font = DefaultDynamicFontHelper.preferredBoldFont(
             withTextStyle: .callout,
             size: UX.buttonFontSize)
         button.layer.cornerRadius = UX.buttonCornerRadius
@@ -131,7 +133,7 @@ class OnboardingCardViewController: UIViewController, Themeable {
     }
 
     private lazy var secondaryButton: ResizableButton = .build { button in
-        button.titleLabel?.font = DynamicFontHelper.defaultHelper.preferredBoldFont(
+        button.titleLabel?.font = DefaultDynamicFontHelper.preferredBoldFont(
             withTextStyle: .callout,
             size: UX.buttonFontSize)
         button.layer.cornerRadius = UX.buttonCornerRadius
@@ -146,7 +148,8 @@ class OnboardingCardViewController: UIViewController, Themeable {
     }
 
     private lazy var linkButton: ResizableButton = .build { button in
-        button.titleLabel?.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .subheadline, size: UX.buttonFontSize)
+        button.titleLabel?.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .subheadline,
+                                                                         size: UX.buttonFontSize)
         button.titleLabel?.textAlignment = .center
         button.addTarget(self, action: #selector(self.linkButtonAction), for: .touchUpInside)
         button.setTitleColor(.systemBlue, for: .normal)
@@ -158,14 +161,22 @@ class OnboardingCardViewController: UIViewController, Themeable {
                                                 right: UX.buttonHorizontalInset)
     }
 
+    // TODO: https://mozilla-hub.atlassian.net/browse/FXIOS-6816
+    // This should not be calculated using scaling coefficients, but with some
+    // version based on constrains of some kind. The ticket above ensures this work
+    // should get addressed.
     private var imageViewHeight: CGFloat {
+        return UX.baseImageHeight * scalingCoefficient()
+    }
+
+    private func scalingCoefficient() -> CGFloat {
         if shouldUseTinyDeviceLayout {
-            return UX.tinyImageViewSize.height
+            return 1.0
         } else if shouldUseSmallDeviceLayout {
-            return UX.imageViewSize.height
-        } else {
-            return UX.smallImageViewSize.height
+            return 1.25
         }
+
+        return 1.4
     }
 
     // MARK: - Initializers
@@ -210,7 +221,8 @@ class OnboardingCardViewController: UIViewController, Themeable {
     // MARK: - View setup
     func setupView() {
         view.backgroundColor = .clear
-
+        contentStackView.spacing = stackViewSpacing()
+        buttonStackView.spacing = stackViewSpacing()
         addViewsToView()
 
         // Adapt layout for smaller screens
@@ -220,7 +232,7 @@ class OnboardingCardViewController: UIViewController, Themeable {
         var bottomStackViewPadding = UX.bottomStackViewPaddingPhone
 
         if UIDevice.current.userInterfaceIdiom == .pad {
-            topStackView.spacing = UX.stackViewSpacing
+            topStackView.spacing = stackViewSpacing()
             buttonStackView.spacing = UX.stackViewSpacingButtons
             if traitCollection.horizontalSizeClass == .regular {
                 scrollViewVerticalPadding = UX.smallScrollViewVerticalPadding
@@ -242,10 +254,10 @@ class OnboardingCardViewController: UIViewController, Themeable {
                 scrollViewVerticalPadding = UX.smallScrollViewVerticalPadding
                 topPadding = UX.smallTopStackViewPadding
             } else {
-                topStackView.spacing = UX.stackViewSpacing
+                topStackView.spacing = stackViewSpacing()
                 buttonStackView.spacing = UX.stackViewSpacingButtons
                 scrollViewVerticalPadding = UX.scrollViewVerticalPadding
-                topPadding = UX.topStackViewPaddingPhone
+                topPadding = view.frame.height * 0.1
             }
         }
 
@@ -275,7 +287,7 @@ class OnboardingCardViewController: UIViewController, Themeable {
 
             contentStackView.topAnchor.constraint(greaterThanOrEqualTo: contentContainerView.topAnchor),
             contentStackView.leadingAnchor.constraint(equalTo: contentContainerView.leadingAnchor, constant: horizontalTopStackViewPadding),
-            contentStackView.bottomAnchor.constraint(greaterThanOrEqualTo: contentContainerView.bottomAnchor),
+            contentStackView.bottomAnchor.constraint(greaterThanOrEqualTo: contentContainerView.bottomAnchor, constant: -10),
             contentStackView.trailingAnchor.constraint(equalTo: contentContainerView.trailingAnchor, constant: -horizontalTopStackViewPadding),
             contentStackView.centerYAnchor.constraint(equalTo: contentContainerView.centerYAnchor),
 
@@ -309,6 +321,14 @@ class OnboardingCardViewController: UIViewController, Themeable {
         containerView.addSubviews(contentContainerView)
         scrollView.addSubviews(containerView)
         view.addSubview(scrollView)
+    }
+
+    private func stackViewSpacing() -> CGFloat {
+        guard viewModel.link?.title != nil else {
+            return UX.stackViewSpacingWithoutLink
+        }
+
+        return UX.stackViewSpacingWithLink
     }
 
     private func updateLayout() {

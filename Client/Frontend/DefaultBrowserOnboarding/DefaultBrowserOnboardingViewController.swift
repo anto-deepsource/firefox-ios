@@ -3,6 +3,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
 import Common
+import ComponentLibrary
 import Foundation
 import UIKit
 import Shared
@@ -24,15 +25,14 @@ import Shared
  
  */
 
-class DefaultBrowserOnboardingViewController: UIViewController, OnViewDismissable {
-    struct UX {
+class DefaultBrowserOnboardingViewController: UIViewController, OnViewDismissable, Themeable {
+    private struct UX {
         static let textOffset: CGFloat = 20
         static let textOffsetSmall: CGFloat = 13
         static let titleSize: CGFloat = 28
         static let titleSizeSmall: CGFloat = 24
         static let titleSizeLarge: CGFloat = 34
         static let ctaButtonCornerRadius: CGFloat = 10
-        static let ctaButtonColor = UIColor.Photon.Blue50
         static let ctaButtonWidth: CGFloat = 350
         static let ctaButtonWidthSmall: CGFloat = 300
         static let ctaButtonBottomSpace: CGFloat = 60
@@ -41,11 +41,13 @@ class DefaultBrowserOnboardingViewController: UIViewController, OnViewDismissabl
     }
 
     // MARK: - Properties
+    var themeManager: ThemeManager
+    var themeObserver: NSObjectProtocol?
+    var notificationCenter: NotificationProtocol
     var onViewDismissed: (() -> Void)?
 
     // Public constants
     let viewModel = DefaultBrowserOnboardingViewModel()
-    let theme = LegacyThemeManager.instance
 
     // Private vars
     private var titleFontSize: CGFloat {
@@ -64,38 +66,38 @@ class DefaultBrowserOnboardingViewController: UIViewController, OnViewDismissabl
     private lazy var containerView: UIView = .build { _ in }
 
     private lazy var closeButton: UIButton = .build { button in
-        button.setImage(UIImage(named: ImageIdentifiers.closeLargeButton), for: .normal)
+        button.setImage(UIImage(named: StandardImageIdentifiers.ExtraLarge.crossCircleFill), for: .normal)
         button.accessibilityIdentifier = AccessibilityIdentifiers.FirefoxHomepage.HomeTabBanner.closeButton
     }
 
     private lazy var titleLabel: UILabel = .build { [weak self] label in
-        label.font = DynamicFontHelper.defaultHelper.preferredBoldFont(withTextStyle: .title1,
-                                                                       size: self?.titleFontSize ?? UX.titleSize)
+        label.font = DefaultDynamicFontHelper.preferredBoldFont(withTextStyle: .title1,
+                                                                size: self?.titleFontSize ?? UX.titleSize)
         label.textAlignment = .center
         label.numberOfLines = 0
         label.accessibilityIdentifier = AccessibilityIdentifiers.FirefoxHomepage.HomeTabBanner.titleLabel
     }
 
     private lazy var descriptionText: UILabel = .build { label in
-        label.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .body, size: 17)
+        label.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .body, size: 17)
         label.numberOfLines = 0
         label.accessibilityIdentifier = AccessibilityIdentifiers.FirefoxHomepage.HomeTabBanner.descriptionLabel
     }
 
     private lazy var descriptionLabel1: UILabel = .build { label in
-        label.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .body, size: 17)
+        label.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .body, size: 17)
         label.numberOfLines = 0
         label.accessibilityIdentifier = AccessibilityIdentifiers.FirefoxHomepage.HomeTabBanner.descriptionLabel1
     }
 
     private lazy var descriptionLabel2: UILabel = .build { label in
-        label.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .body, size: 17)
+        label.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .body, size: 17)
         label.numberOfLines = 0
         label.accessibilityIdentifier = AccessibilityIdentifiers.FirefoxHomepage.HomeTabBanner.descriptionLabel2
     }
 
     private lazy var descriptionLabel3: UILabel = .build { label in
-        label.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .body, size: 17)
+        label.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .body, size: 17)
         label.numberOfLines = 0
         label.accessibilityIdentifier = AccessibilityIdentifiers.FirefoxHomepage.HomeTabBanner.descriptionLabel3
     }
@@ -103,14 +105,17 @@ class DefaultBrowserOnboardingViewController: UIViewController, OnViewDismissabl
     private lazy var goToSettingsButton: ResizableButton = .build { button in
         button.layer.cornerRadius = UX.ctaButtonCornerRadius
         button.accessibilityIdentifier = AccessibilityIdentifiers.FirefoxHomepage.HomeTabBanner.ctaButton
-        button.titleLabel?.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .title3, size: 20)
+        button.titleLabel?.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .title3, size: 20)
         button.contentEdgeInsets = UIEdgeInsets(top: 15, left: 15, bottom: 15, right: 15)
         button.titleLabel?.textAlignment = .center
     }
 
     // MARK: - Inits
 
-    init() {
+    init(themeManager: ThemeManager = AppContainer.shared.resolve(),
+         notificationCenter: NotificationProtocol = NotificationCenter.default) {
+        self.themeManager = themeManager
+        self.notificationCenter = notificationCenter
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -121,7 +126,10 @@ class DefaultBrowserOnboardingViewController: UIViewController, OnViewDismissabl
     // MARK: - Lifecycles
     override func viewDidLoad() {
         super.viewDidLoad()
+
         initialViewSetup()
+        listenForThemeChange(view)
+        applyTheme()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -154,14 +162,7 @@ class DefaultBrowserOnboardingViewController: UIViewController, OnViewDismissabl
         closeButton.addTarget(self, action: #selector(dismissAnimated), for: .touchUpInside)
         goToSettingsButton.addTarget(self, action: #selector(goToSettings), for: .touchUpInside)
 
-        updateTheme()
         setupLayout()
-
-        // Theme change notification
-        NotificationCenter.default.addObserver(self,
-                                               selector: #selector(updateTheme),
-                                               name: .DisplayThemeChanged,
-                                               object: nil)
     }
 
     private func setupLayout() {
@@ -249,12 +250,7 @@ class DefaultBrowserOnboardingViewController: UIViewController, OnViewDismissabl
     // Button Actions
     @objc
     private func dismissAnimated() {
-        if CoordinatorFlagManager.isCoordinatorEnabled {
-            // Note: this could be one closure only and not two with goToSettings
-            viewModel.didAskToDismissView?()
-        } else {
-            self.dismiss(animated: true, completion: nil)
-        }
+        viewModel.didAskToDismissView?()
         TelemetryWrapper.recordEvent(category: .action, method: .tap, object: .dismissDefaultBrowserOnboarding)
     }
 
@@ -264,30 +260,24 @@ class DefaultBrowserOnboardingViewController: UIViewController, OnViewDismissabl
         UserDefaults.standard.set(true, forKey: PrefsKeys.DidDismissDefaultBrowserMessage) // Don't show default browser card if this button is clicked
         TelemetryWrapper.recordEvent(category: .action, method: .tap, object: .goToSettingsDefaultBrowserOnboarding)
 
-        if CoordinatorFlagManager.isCoordinatorEnabled {
-            DefaultApplicationHelper().openSettings()
-        }
+        DefaultApplicationHelper().openSettings()
     }
 
-    // Theme
-    @objc
-    func updateTheme() {
-        let textColor: UIColor = theme.currentName == .dark ? .white : .black
+    // MARK: Themeable
+    func applyTheme() {
+        let theme = themeManager.currentTheme
 
-        view.backgroundColor = .systemBackground
-        titleLabel.textColor = textColor
+        view.backgroundColor = theme.colors.layer1
+        titleLabel.textColor = theme.colors.textPrimary
 
-        descriptionText.textColor = textColor
-        descriptionLabel1.textColor = textColor
-        descriptionLabel2.textColor = textColor
-        descriptionLabel3.textColor = textColor
+        descriptionText.textColor = theme.colors.textPrimary
+        descriptionLabel1.textColor = theme.colors.textPrimary
+        descriptionLabel2.textColor = theme.colors.textPrimary
+        descriptionLabel3.textColor = theme.colors.textPrimary
 
-        goToSettingsButton.backgroundColor = UX.ctaButtonColor
-        goToSettingsButton.setTitleColor(.white, for: .normal)
-        closeButton.tintColor = .secondaryLabel
-    }
+        goToSettingsButton.backgroundColor = theme.colors.actionPrimary
+        goToSettingsButton.setTitleColor(theme.colors.textInverted, for: .normal)
 
-    deinit {
-        NotificationCenter.default.removeObserver(self)
+        closeButton.tintColor = theme.colors.textSecondary
     }
 }

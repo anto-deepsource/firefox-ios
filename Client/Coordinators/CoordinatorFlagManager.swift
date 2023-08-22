@@ -7,23 +7,25 @@ import Shared
 
 /// This is a temporary struct made to manage the coordinator multiple feature flag for conveniance
 struct CoordinatorFlagManager {
-    /// This will be removed with FXIOS-6036
-    static var isCoordinatorEnabled: Bool {
-        return LegacyFeatureFlagsManager.shared.isFeatureEnabled(.coordinatorsRefactor,
-                                                                 checking: .buildOnly)
-    }
-
     /// This will be removed with FXIOS-6529
     static var isSettingsCoordinatorEnabled: Bool {
-        return CoordinatorFlagManager.isCoordinatorEnabled
-        && LegacyFeatureFlagsManager.shared.isFeatureEnabled(.settingsCoordinatorRefactor,
-                                                             checking: .buildOnly)
+        return LegacyFeatureFlagsManager.shared.isFeatureEnabled(.settingsCoordinatorRefactor,
+                                                                 checking: .buildOnly)
     }
 
     /// This will be removed with FXIOS-6530
     static var isLibraryCoordinatorEnabled: Bool {
-        return CoordinatorFlagManager.isCoordinatorEnabled
-        && LegacyFeatureFlagsManager.shared.isFeatureEnabled(.libraryCoordinatorRefactor,
+        return LegacyFeatureFlagsManager.shared.isFeatureEnabled(.libraryCoordinatorRefactor,
+                                                                 checking: .buildOnly)
+    }
+
+    static var isShareExtensionCoordinatorEnabled: Bool {
+        NimbusManager.shared.featureFlagLayer.checkNimbusConfigFor(.shareExtensionCoordinatorRefactor)
+    }
+
+    static var isEtpCoordinatorEnabled: Bool {
+        return CoordinatorFlagManager.isSettingsCoordinatorEnabled
+        && LegacyFeatureFlagsManager.shared.isFeatureEnabled(.etpCoordinatorRefactor,
                                                              checking: .buildOnly)
     }
 }

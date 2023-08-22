@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import UIKit
 import Storage
 import Shared
@@ -117,11 +118,11 @@ class BackForwardTableViewCell: UITableViewCell, ReusableCell, ThemeApplicable {
 
         label.text = viewModel.cellTittle
         if viewModel.isCurrentTab {
-            label.font = DynamicFontHelper.defaultHelper.preferredBoldFont(withTextStyle: .body,
-                                                                           size: UX.fontSize)
+            label.font = DefaultDynamicFontHelper.preferredBoldFont(withTextStyle: .body,
+                                                                    size: UX.fontSize)
         } else {
-            label.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .body,
-                                                                       size: UX.fontSize)
+            label.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .body,
+                                                                size: UX.fontSize)
         }
         setNeedsLayout()
         applyTheme(theme: theme)

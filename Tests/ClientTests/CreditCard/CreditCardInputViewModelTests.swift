@@ -110,7 +110,13 @@ class CreditCardInputViewModelTests: XCTestCase {
         viewModel.nameOnCard = "Kenny Champion"
         viewModel.expirationDate = "1239"
         viewModel.cardNumber = "4871007782167426"
-        XCTAssert(viewModel.isRightBarButtonEnabled)
+        // Original State
+        XCTAssertFalse(viewModel.isRightBarButtonEnabled)
+        // Minic the behaviour of onChange
+        // in credit card input field, as the
+        // state changes based on validity of the input variables
+        viewModel.updateRightButtonState()
+        XCTAssertTrue(viewModel.isRightBarButtonEnabled)
     }
 
     func testRightBarButtonNotEnabledAdd() {
@@ -126,7 +132,13 @@ class CreditCardInputViewModelTests: XCTestCase {
         viewModel.nameOnCard = "Jakyla Labarge"
         viewModel.expirationDate = "1239"
         viewModel.cardNumber = "4717219604213696"
-        XCTAssert(viewModel.isRightBarButtonEnabled)
+        // Original State
+        XCTAssertFalse(viewModel.isRightBarButtonEnabled)
+        // Minic the behaviour of onChange
+        // in credit card input field, as the
+        // state changes based on validity of the input variables
+        viewModel.updateRightButtonState()
+        XCTAssertTrue(viewModel.isRightBarButtonEnabled)
     }
 
     func testRightBarButtonDisabled_AddState() {
@@ -260,7 +272,7 @@ class CreditCardInputViewModelTests: XCTestCase {
                         XCTAssertNil(error)
                         XCTAssertNotNil(ccUpdatedCard)
                         XCTAssertEqual(ccUpdatedCard?.ccName, "Mickey Mouse")
-                        XCTAssertEqual(ccUpdatedCard?.ccExpYear, 56)
+                        XCTAssertEqual(ccUpdatedCard?.ccExpYear, 2056)
                         XCTAssertEqual(ccUpdatedCard?.ccExpMonth, 02)
                         // Note: We do not test encrypted card number
                         // but the last 4 digits

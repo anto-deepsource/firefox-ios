@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import UIKit
 import Storage
 import Shared
@@ -64,7 +65,7 @@ class RemoteTabsClientAndTabsDataSource: NSObject, RemoteTabsPanelDataSource {
         let viewModel = SiteTableViewHeaderModel(title: client.name,
                                                  isCollapsible: true,
                                                  collapsibleState:
-                                                    isCollapsed ? ExpandButtonState.right : ExpandButtonState.down)
+                                                    isCollapsed ? ExpandButtonState.trailing : ExpandButtonState.down)
         headerView.configure(viewModel)
         headerView.showBorder(for: .bottom, true)
         headerView.showBorder(for: .top, section != 0)

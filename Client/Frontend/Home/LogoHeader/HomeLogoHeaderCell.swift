@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Foundation
 import Shared
 import UIKit
@@ -15,8 +16,8 @@ class HomeLogoHeaderCell: UICollectionViewCell, ReusableCell {
         }
 
         struct TextImage {
-            static let imageWidth: CGFloat = 165.5
-            static let imageHeight: CGFloat = 17.5
+            static let imageWidth: CGFloat = 70
+            static let imageHeight: CGFloat = 40
             static let leadingConstant: CGFloat = 9
             static let trailingConstant: CGFloat = -15
         }
@@ -35,9 +36,6 @@ class HomeLogoHeaderCell: UICollectionViewCell, ReusableCell {
         imageView.contentMode = .scaleAspectFit
         imageView.accessibilityIdentifier = a11y.logoText
     }
-
-    // MARK: - Variables
-    private var userDefaults = UserDefaults.standard
 
     // MARK: - Initializers
     override init(frame: CGRect) {

@@ -6,6 +6,7 @@ import Common
 import Foundation
 import Shared
 import Kingfisher
+import MozillaAppServices
 
 class UITestAppDelegate: AppDelegate, FeatureFlaggable {
     lazy var dirForTestProfile = { return "\(self.appRootDir())/profile.testProfile" }()
@@ -28,6 +29,7 @@ class UITestAppDelegate: AppDelegate, FeatureFlaggable {
 
         var profile: BrowserProfile
         let launchArguments = ProcessInfo.processInfo.arguments
+        let dirForTestProfile = self.dirForTestProfile
 
         launchArguments.forEach { arg in
             if arg.starts(with: LaunchArguments.ServerPort) {
@@ -65,6 +67,7 @@ class UITestAppDelegate: AppDelegate, FeatureFlaggable {
             }
 
             if arg.starts(with: LaunchArguments.LoadTabsStateArchive) {
+                let tabDirectory = "\(self.appRootDir())/profile.profile"
                 if launchArguments.contains(LaunchArguments.ClearProfile) {
                     fatalError("Clearing profile and loading a \(LegacyTabManagerStoreImplementation.storePath) is not a supported combination.")
                 }
@@ -74,16 +77,17 @@ class UITestAppDelegate: AppDelegate, FeatureFlaggable {
                 let input = URL(fileURLWithPath: Bundle(for: UITestAppDelegate.self).path(forResource: filenameArchive,
                                                                                           ofType: nil,
                                                                                           inDirectory: "test-fixtures")!)
-                try? FileManager.default.createDirectory(atPath: dirForTestProfile, withIntermediateDirectories: false, attributes: nil)
-                let output = URL(fileURLWithPath: "\(dirForTestProfile)/\(LegacyTabManagerStoreImplementation.storePath)")
-
-                let enumerator = FileManager.default.enumerator(atPath: dirForTestProfile)
-                let filePaths = enumerator?.allObjects as! [String]
-                filePaths.filter { $0.contains(".archive") }.forEach { item in
-                    try! FileManager.default.removeItem(at: URL(fileURLWithPath: "\(dirForTestProfile)/\(item)"))
+                try? FileManager.default.createDirectory(atPath: tabDirectory, withIntermediateDirectories: false, attributes: nil)
+                let outputDir = URL(fileURLWithPath: "\(tabDirectory)/window-data")
+                let outputFile = URL(fileURLWithPath: "\(tabDirectory)/window-data/window-44BA0B7D-097A-484D-8358-91A6E374451D")
+                let enumerator = FileManager.default.enumerator(atPath: "\(tabDirectory)/window-data")
+                let filePaths = enumerator?.allObjects as? [String]
+                filePaths?.filter { $0.contains("window-") }.forEach { item in
+                    try! FileManager.default.removeItem(at: URL(fileURLWithPath: "\(tabDirectory)/window-data/\(item)"))
                 }
 
-                try! FileManager.default.copyItem(at: input, to: output)
+                try? FileManager.default.createDirectory(at: outputDir, withIntermediateDirectories: true)
+                try! FileManager.default.copyItem(at: input, to: outputFile)
             }
         }
 
@@ -110,7 +114,7 @@ class UITestAppDelegate: AppDelegate, FeatureFlaggable {
         }
 
         if launchArguments.contains(LaunchArguments.SkipSponsoredShortcuts) {
-            profile.prefs.setBool(false, forKey: PrefsKeys.FeatureFlags.SponsoredShortcuts)
+            profile.prefs.setBool(false, forKey: PrefsKeys.UserFeatureFlagPrefs.SponsoredShortcuts)
         }
 
         // Don't show the What's New page.
@@ -133,6 +137,10 @@ class UITestAppDelegate: AppDelegate, FeatureFlaggable {
 
         if launchArguments.contains(LaunchArguments.FxAChinaServer) {
             profile.prefs.setInt(1, forKey: PrefsKeys.KeyEnableChinaSyncService)
+        }
+
+        if launchArguments.contains(LaunchArguments.DisableAnimations) {
+            UIView.setAnimationsEnabled(false)
         }
 
         self.profile = profile
@@ -183,6 +191,8 @@ class UITestAppDelegate: AppDelegate, FeatureFlaggable {
         // Speed up the animations to 100 times as fast.
         defer { UIWindow.keyWindow?.layer.speed = 100.0 }
 
+        loadExperiment()
+
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }
 
@@ -195,5 +205,25 @@ class UITestAppDelegate: AppDelegate, FeatureFlaggable {
             rootPath = (NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0])
         }
         return rootPath
+    }
+
+    // MARK: - Private
+    private func loadExperiment() {
+        let argument = ProcessInfo.processInfo.arguments.first { string in
+            string.starts(with: LaunchArguments.LoadExperiment)
+        }
+
+        guard let arg = argument else { return }
+
+        let experimentName = arg.replacingOccurrences(of: LaunchArguments.LoadExperiment, with: "")
+        let fileURL = Bundle.main.url(forResource: experimentName, withExtension: "json")
+        if let fileURL = fileURL {
+            do {
+                let fileContent = try String(contentsOf: fileURL)
+                let features = HardcodedNimbusFeatures(with: ["messaging": fileContent])
+                features.connect(with: FxNimbus.shared)
+            } catch {
+            }
+        }
     }
 }

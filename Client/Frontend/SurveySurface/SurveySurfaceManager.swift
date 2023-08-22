@@ -22,8 +22,6 @@ class SurveySurfaceManager: SurveySurfaceDelegate {
     private var viewModel: SurveySurfaceViewModel?
     private var viewController: SurveySurfaceViewController?
 
-    var dismissClosure: (() -> Void)?
-
     var shouldShowSurveySurface: Bool {
         // TODO: Remove hack (temporary fix to avoid showing SurveySurface in UITest for release branch)
         if AppConstants.isRunningUITests { return false }
@@ -52,8 +50,8 @@ class SurveySurfaceManager: SurveySurfaceDelegate {
               let image = UIImage(named: ImageIdentifiers.logo)
         else { return nil }
 
-        let info = SurveySurfaceInfoModel(text: message.data.text,
-                                          takeSurveyButtonLabel: message.data.buttonLabel ?? .ResearchSurface.TakeSurveyButtonLabel,
+        let info = SurveySurfaceInfoModel(text: message.text,
+                                          takeSurveyButtonLabel: message.buttonLabel ?? .ResearchSurface.TakeSurveyButtonLabel,
                                           dismissActionLabel: .ResearchSurface.DismissButtonLabel,
                                           image: image)
 
@@ -84,9 +82,5 @@ class SurveySurfaceManager: SurveySurfaceDelegate {
 
     func didTapDismissSurvey() {
         message.map(messagingManager.onMessageDismissed)
-        // FXIOS-6036 - Remove the dismissClosure, we dismiss using delegate instead of closure
-        if !CoordinatorFlagManager.isCoordinatorEnabled {
-            dismissClosure?()
-        }
     }
 }

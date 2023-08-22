@@ -68,9 +68,9 @@ class ZoomPageBar: UIView, ThemeApplicable, AlphaDimmable {
     }
 
     private let zoomLevel: UILabel = .build { label in
-        label.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .callout,
-                                                                   size: UX.fontSize,
-                                                                   weight: .semibold)
+        label.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .callout,
+                                                            size: UX.fontSize,
+                                                            weight: .semibold)
         label.accessibilityIdentifier = AccessibilityIdentifiers.ZoomPageBar.zoomPageZoomLevelLabel
         label.isUserInteractionEnabled = true
         label.adjustsFontForContentSizeCategory = true
@@ -78,7 +78,7 @@ class ZoomPageBar: UIView, ThemeApplicable, AlphaDimmable {
     }
 
     private let zoomInButton: UIButton = .build { button in
-        button.setImage(UIImage.templateImageNamed(ImageIdentifiers.add), for: [])
+        button.setImage(UIImage.templateImageNamed(StandardImageIdentifiers.Large.plus), for: [])
         button.accessibilityLabel = .AppMenu.ZoomPageIncreaseZoomAccessibilityLabel
         button.accessibilityIdentifier = AccessibilityIdentifiers.ZoomPageBar.zoomPageZoomInButton
         button.setContentHuggingPriority(.required, for: .horizontal)
@@ -87,7 +87,7 @@ class ZoomPageBar: UIView, ThemeApplicable, AlphaDimmable {
     }
 
     private let closeButton: UIButton = .build { button in
-        button.setImage(UIImage.templateImageNamed(ImageIdentifiers.xMark), for: [])
+        button.setImage(UIImage.templateImageNamed(StandardImageIdentifiers.Large.cross), for: [])
         button.accessibilityLabel = .AppMenu.ZoomPageCloseAccessibilityLabel
         button.accessibilityIdentifier = AccessibilityIdentifiers.FindInPage.findInPageCloseButton
         button.setContentCompressionResistancePriority(.required, for: .horizontal)
@@ -120,6 +120,7 @@ class ZoomPageBar: UIView, ThemeApplicable, AlphaDimmable {
         super.layoutSubviews()
         remakeGradientViewHeightConstraint()
         updateStepperConstraintsBasedOnSizeClass()
+        layoutIfNeeded()
     }
 
     private func setupViews() {
@@ -235,22 +236,6 @@ class ZoomPageBar: UIView, ThemeApplicable, AlphaDimmable {
     private func focusOnZoomLevel() {
         if UIAccessibility.isVoiceOverRunning {
             UIAccessibility.post(notification: .layoutChanged, argument: zoomLevel)
-        }
-    }
-
-    private func animateGradientOpacity(alpha: Float, duration: TimeInterval) {
-        animation.fromValue = alpha == 1 ? 0 : 1
-        animation.toValue = alpha
-        animation.duration = duration
-        gradient.add(animation, forKey: "opacity")
-    }
-
-    func changeGradientOpacity(alpha: Float, duration: TimeInterval = 0, withAnimation: Bool = false) {
-        if withAnimation {
-            animateGradientOpacity(alpha: alpha, duration: duration)
-        } else {
-            gradient.removeAnimation(forKey: "opacity")
-            gradient.opacity = alpha
         }
     }
 

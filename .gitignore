@@ -96,6 +96,7 @@ Client/Assets/AllFramesAtDocumentEnd.js
 Client/Assets/MainFrameAtDocumentStart.js
 Client/Assets/MainFrameAtDocumentEnd.js
 Client/Assets/AutofillAllFramesAtDocumentStart.js
+Client/Assets/WebcompatAllFramesAtDocumentStart.js
 Client/Assets/*.js.LICENSE.txt
 
 # L10n
@@ -110,3 +111,6 @@ export-strings.log
 nimbus-fml/
 
 *config.py
+
+# tmp files
+/test-fixtures/tmp/*

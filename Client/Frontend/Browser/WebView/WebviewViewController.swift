@@ -10,7 +10,7 @@ class WebviewViewController: UIViewController, ContentContainable, Screenshotabl
     private var webView: WKWebView
     var contentType: ContentType = .webview
 
-    init(webView: WKWebView) {
+    init(webView: WKWebView, isPrivate: Bool = false) {
         self.webView = webView
         super.init(nibName: nil, bundle: nil)
     }
@@ -21,10 +21,10 @@ class WebviewViewController: UIViewController, ContentContainable, Screenshotabl
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupLayout()
+        setupWebView()
     }
 
-    private func setupLayout() {
+    private func setupWebView() {
         view.addSubview(webView)
         webView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -35,9 +35,9 @@ class WebviewViewController: UIViewController, ContentContainable, Screenshotabl
         ])
     }
 
-    func update(webView: WKWebView) {
+    func update(webView: WKWebView, isPrivate: Bool = false) {
         self.webView = webView
-        setupLayout()
+        setupWebView()
     }
 
     // MARK: - ScreenshotableView

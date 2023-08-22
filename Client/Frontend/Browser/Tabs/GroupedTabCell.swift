@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Foundation
 import SnapKit
 import UIKit
@@ -93,6 +94,7 @@ class GroupedTabCell: UICollectionViewCell,
                                                  for: indexPath) as! GroupedTabContainerCell
         cell.delegate = self
         cell.theme = theme
+        cell.applyTheme(theme: theme)
         cell.tabs = tabGroups?.map { $0.groupedItems }[indexPath.item]
         cell.titleLabel.text = tabGroups?.map { $0.searchTerm }[indexPath.item] ?? ""
         cell.collectionView.reloadData()
@@ -266,8 +268,6 @@ class GroupedTabContainerCell: UITableViewCell,
             make.trailing.equalToSuperview().inset(12)
             make.bottom.equalToSuperview()
         }
-
-        applyTheme(theme: theme)
     }
 
     func focusTab(tab: Tab) {

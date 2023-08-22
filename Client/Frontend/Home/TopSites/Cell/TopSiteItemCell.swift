@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Foundation
 import Shared
 import SiteImageView
@@ -57,14 +58,14 @@ class TopSiteItemCell: UICollectionViewCell, ReusableCell {
     }
 
     private lazy var pinImageView: UIImageView = .build { imageView in
-        imageView.image = UIImage.templateImageNamed(ImageIdentifiers.pinSmall)
+        imageView.image = UIImage.templateImageNamed(StandardImageIdentifiers.Small.pinBadgeFill)
         imageView.isHidden = true
     }
 
     private lazy var titleLabel: UILabel = .build { titleLabel in
         titleLabel.textAlignment = .center
-        titleLabel.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .caption1,
-                                                                        size: UX.titleFontSize)
+        titleLabel.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .caption1,
+                                                                 size: UX.titleFontSize)
         titleLabel.adjustsFontForContentSizeCategory = true
         titleLabel.preferredMaxLayoutWidth = UX.imageBackgroundSize.width + HomepageViewModel.UX.shadowRadius
         titleLabel.backgroundColor = .clear
@@ -73,8 +74,8 @@ class TopSiteItemCell: UICollectionViewCell, ReusableCell {
 
     private lazy var sponsoredLabel: UILabel = .build { sponsoredLabel in
         sponsoredLabel.textAlignment = .center
-        sponsoredLabel.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .caption2,
-                                                                            size: UX.sponsorFontSize)
+        sponsoredLabel.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .caption2,
+                                                                     size: UX.sponsorFontSize)
         sponsoredLabel.adjustsFontForContentSizeCategory = true
         sponsoredLabel.preferredMaxLayoutWidth = UX.imageBackgroundSize.width + HomepageViewModel.UX.shadowRadius
     }
@@ -258,9 +259,6 @@ extension TopSiteItemCell: ThemeApplicable {
 // MARK: - Blurrable
 extension TopSiteItemCell: Blurrable {
     func adjustBlur(theme: Theme) {
-        rootContainer.setNeedsLayout()
-        rootContainer.layoutIfNeeded()
-
         if shouldApplyWallpaperBlur {
             rootContainer.addBlurEffectWithClearBackgroundAndClipping(using: .systemThickMaterial)
         } else {

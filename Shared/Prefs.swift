@@ -13,10 +13,6 @@ public struct PrefsKeys {
     // Global sync state for rust sync manager
     public static let RustSyncManagerPersistedState = "rustSyncManagerPersistedStateKey"
 
-    // When this pref is set to true it signifies that RustSyncManager has been set as the
-    // sync manager
-    public static let HasRustSyncManagerEverBeenUsed = "hasRustSyncManagerEverBeenUsedKey"
-
     public static let KeyLastSyncFinishTime = "lastSyncFinishTime"
     public static let KeyDefaultHomePageURL = "KeyDefaultHomePageURL"
     public static let KeyNoImageModeStatus = "NoImageModeStatus"
@@ -73,7 +69,7 @@ public struct PrefsKeys {
     // For ease of use, please list keys alphabetically.
     public struct FeatureFlags {
         public static let ASPocketStories = "ASPocketStoriesUserPrefsKey"
-        public static let ASSponsoredPocketStories = "ASSponsoredPocketStoriesUserPrefsKey"
+        public static let AutopushFeature = "AutopushFeatureUserPrefKey"
         public static let CustomWallpaper = "CustomWallpaperUserPrefsKey"
         public static let HistoryHighlightsSection = "HistoryHighlightsSectionUserPrefsKey"
         public static let HistoryGroups = "HistoryGroupsUserPrefsKey"
@@ -83,28 +79,12 @@ public struct PrefsKeys {
         public static let RecentlySavedSection = "RecentlySavedSectionUserPrefsKey"
         public static let SearchBarPosition = "SearchBarPositionUsersPrefsKey"
         public static let StartAtHome = "StartAtHomeUserPrefsKey"
-        public static let SponsoredShortcuts = "SponsoredShortcutsUserPrefsKey"
         public static let TabTrayGroups = "TabTrayGroupsUserPrefsKey"
         public static let TopSiteSection = "TopSitesUserPrefsKey"
     }
 
-    public struct LegacyFeatureFlags {
-        public static let ASPocketStories = "ASPocketStoriesVisible"
-        public static let CustomWallpaper = "customWallpaperPrefKey"
-        public static let HistoryHighlightsSection = "historyHighlightsSectionEnabled"
-        public static let HistoryGroups = "historyGroupsEnabled"
-        public static let InactiveTabs = "KeyInactiveTabs"
-        public static let JumpBackInSection = "jumpBackInSectionEnabled"
-        public static let PullToRefresh = "pullToRefresh"
-        public static let RecentlySavedSection = "recentlySavedSectionEnabled"
-        public static let KeySearchBarPosition = "SearchBarPosition"
-        public static let StartAtHome = "startAtHome"
-        public static let TabTrayGroups = "KeyEnableGroupedTabsKey"
-        public static let SponsoredShortcuts = "sponsoredShortcutsKey"
-        public static let TopSiteSection = "topSitesKey"
-
-        public static let MigrationCheck = "MigrationCheck"
-        public static let WallpaperDirectoryMigrationCheck = "WallpaperDirectoryMigrationCheck"
+    public struct UserFeatureFlagPrefs {
+        public static let SponsoredShortcuts = "SponsoredShortcutsUserPrefsKey"
     }
 
     // Firefox contextual hint
@@ -138,6 +118,7 @@ public struct PrefsKeys {
     public static let KeyInactiveTabsFirstTimeRun = "KeyInactiveTabsFirstTimeRunKey"
     public static let KeyTabDisplayOrder = "KeyTabDisplayOrderKey"
     public static let TabMigrationKey = "TabMigrationKey"
+    public static let TabSyncEnabled = "sync.engine.tabs.enabled"
 
     // Widgetkit Key
     public static let WidgetKitSimpleTabKey = "WidgetKitSimpleTabKey"

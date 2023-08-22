@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import UIKit
 import SiteImageView
 import Shared
@@ -18,14 +19,14 @@ class HistoryHighlightsCell: UICollectionViewCell, ReusableCell {
     let imageView: FaviconImageView = .build { imageView in }
 
     let itemTitle: UILabel = .build { label in
-        label.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .body,
-                                                                   size: 15)
+        label.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .body,
+                                                            size: 15)
         label.adjustsFontForContentSizeCategory = true
     }
 
     let itemDescription: UILabel = .build { label in
-        label.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .caption1,
-                                                                   size: 12)
+        label.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .caption1,
+                                                            size: 12)
         label.adjustsFontForContentSizeCategory = true
     }
 
@@ -87,7 +88,7 @@ class HistoryHighlightsCell: UICollectionViewCell, ReusableCell {
             let faviconViewModel = FaviconImageViewModel(siteURLString: url)
             imageView.setFavicon(faviconViewModel)
         } else {
-            imageView.image = UIImage.templateImageNamed(ImageIdentifiers.stackedTabsIcon)
+            imageView.image = UIImage.templateImageNamed(StandardImageIdentifiers.Large.tabTray)
         }
 
         applyTheme(theme: theme)

@@ -12,24 +12,28 @@ import XCTest
 
 public typealias ClientSyncManager = Client.SyncManager
 
-open class MockSyncManager: ClientSyncManager {
+open class ClientSyncManagerSpy: ClientSyncManager {
     open var isSyncing = false
     open var lastSyncFinishTime: Timestamp?
     open var syncDisplayState: SyncDisplayState?
 
-    private func completedWithStats(collection: String) -> Deferred<Maybe<SyncStatus>> {
-        return deferMaybe(SyncStatus.completed(SyncEngineStatsSession(collection: collection)))
-    }
+    private var mockDeclinedEngines: [String]?
+    private var mockEngineEnabled = false
+    private var emptySyncResult = deferMaybe(SyncResult(status: .ok,
+                                                        successful: [],
+                                                        failures: [:],
+                                                        persistedState: "",
+                                                        declined: nil,
+                                                        nextSyncAllowedAt: nil,
+                                                        telemetryJson: nil))
 
-    open func syncClients() -> OldSyncResult { return completedWithStats(collection: "mock_clients") }
-    open func syncClientsThenTabs() -> OldSyncResult { return completedWithStats(collection: "mock_clientsandtabs") }
-    open func syncHistory() -> OldSyncResult { return completedWithStats(collection: "mock_history") }
-    open func syncEverything(why: OldSyncReason) -> Success {
-        return succeed()
-    }
+    open func syncTabs() -> Deferred<Maybe<SyncResult>> { return emptySyncResult }
+    open func syncHistory() -> Deferred<Maybe<SyncResult>> { return emptySyncResult }
+    open func syncEverything(why: SyncReason) -> Success { return succeed() }
+    open func updateCreditCardAutofillStatus(value: Bool) {}
 
     var syncNamedCollectionsCalled = 0
-    open func syncNamedCollections(why: OldSyncReason, names: [String]) -> Success {
+    open func syncNamedCollections(why: SyncReason, names: [String]) -> Success {
         syncNamedCollectionsCalled += 1
         return succeed()
     }
@@ -47,6 +51,22 @@ open class MockSyncManager: ClientSyncManager {
     }
     open func onRemovedAccount() -> Success {
         return succeed()
+    }
+    open func checkCreditCardEngineEnablement() -> Bool {
+        guard let mockDeclinedEngines = mockDeclinedEngines,
+              !mockDeclinedEngines.isEmpty,
+              mockDeclinedEngines.contains("creditcards") else {
+            return mockEngineEnabled
+        }
+        return false
+    }
+
+    func setMockDeclinedEngines(_ engines: [String]?) {
+        mockDeclinedEngines = engines
+    }
+
+    func setMockEngineEnabled(_ enabled: Bool) {
+        mockEngineEnabled = enabled
     }
 }
 
@@ -94,7 +114,7 @@ open class MockProfile: Client.Profile {
 
     init(databasePrefix: String = "mock") {
         files = MockFiles()
-        syncManager = MockSyncManager()
+        syncManager = ClientSyncManagerSpy()
 
         let oldLoginsDatabasePath = URL(fileURLWithPath: (try! files.getAndEnsureDirectory()), isDirectory: true).appendingPathComponent("\(databasePrefix)_logins.db").path
         try? files.remove("\(databasePrefix)_logins.db")
@@ -180,14 +200,6 @@ open class MockProfile: Client.Profile {
         return ClosedTabsStore(prefs: self.prefs)
     }()
 
-    internal lazy var remoteClientsAndTabs: RemoteClientsAndTabs = {
-        return SQLiteRemoteClientsAndTabs(db: self.database)
-    }()
-
-    fileprivate lazy var syncCommands: SyncCommands = {
-        return SQLiteRemoteClientsAndTabs(db: self.database)
-    }()
-
     public func hasSyncAccount(completion: @escaping (Bool) -> Void) {
         completion(hasSyncableAccountMock)
     }
@@ -207,6 +219,10 @@ open class MockProfile: Client.Profile {
         self.syncManager.onRemovedAccount()
     }
 
+    public func getCachedClientsAndTabs() -> Deferred<Maybe<[ClientAndTabs]>> {
+        return deferMaybe(mockClientAndTabs)
+    }
+
     public func getClientsAndTabs() -> Deferred<Maybe<[ClientAndTabs]>> {
         return deferMaybe([])
     }
@@ -215,10 +231,6 @@ open class MockProfile: Client.Profile {
 
     public func getCachedClientsAndTabs(completion: @escaping ([ClientAndTabs]) -> Void) {
         completion(mockClientAndTabs)
-    }
-
-    public func getCachedClientsAndTabs() -> Deferred<Maybe<[ClientAndTabs]>> {
-        return deferMaybe(mockClientAndTabs)
     }
 
     public func cleanupHistoryIfNeeded() {}

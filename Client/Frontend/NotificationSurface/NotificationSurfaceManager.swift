@@ -88,8 +88,9 @@ class NotificationSurfaceManager: NotificationSurfaceDelegate {
     private func scheduleNotification(message: GleanPlumbMessage, notificationId: String) {
         let userInfo = [Constant.messageIdKey: message.id]
         let fallbackTitle = String(format: .Notification.FallbackTitle, AppInfo.displayName)
+        let body = String(format: message.data.text, AppInfo.displayName)
         notificationManager.schedule(title: message.data.title ?? fallbackTitle,
-                                     body: message.data.text,
+                                     body: body,
                                      id: notificationId,
                                      userInfo: userInfo,
                                      categoryIdentifier: Constant.notificationCategoryId,
@@ -97,7 +98,7 @@ class NotificationSurfaceManager: NotificationSurfaceDelegate {
                                      repeats: false)
 
         // Schedule notification telemetry for when notification gets displayed
-        DispatchQueue.global(qos: .default).asyncAfter(deadline: .now() + Constant.messageDelay) { [weak self] in
+        DispatchQueue.global().asyncAfter(deadline: .now() + Constant.messageDelay) { [weak self] in
             self?.didDisplayMessage(message)
         }
     }

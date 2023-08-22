@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import XCTest
 
 let url = "www.mozilla.org"
@@ -57,13 +58,13 @@ class TopTabsTest: BaseTestCase {
         // Open tab tray to check that both tabs are there
         checkNumberOfTabsExpectedToBeOpen(expectedNumberOfTabsOpen: 2)
         waitForExistence(app.cells.staticTexts["Example Domain"])
-        if !app.cells.staticTexts["IANA — IANA-managed Reserved Domains"].exists {
+        if !app.cells.staticTexts["Example Domains"].exists {
             navigator.goto(TabTray)
-            app.cells.staticTexts["Example Domain"].firstMatch.tap()
+            app.cells.staticTexts["Examples Domain"].firstMatch.tap()
             waitUntilPageLoad()
             navigator.nowAt(BrowserTab)
             navigator.goto(TabTray)
-            waitForExistence(app.otherElements.cells.staticTexts["IANA-managed Reserved Domains"])
+            waitForExistence(app.otherElements.cells.staticTexts["Examples Domains"])
         }
     }
 
@@ -100,9 +101,9 @@ class TopTabsTest: BaseTestCase {
         waitForExistence(app.cells.staticTexts[urlLabel])
         // Close the tab using 'x' button
         if iPad() {
-            app.cells.buttons["tab close"].tap()
+            app.cells.buttons[StandardImageIdentifiers.Large.cross].tap()
         } else {
-            app.otherElements.cells.buttons["tab close"].tap()
+            app.otherElements.cells.buttons[StandardImageIdentifiers.Large.cross].tap()
         }
 
         // After removing only one tab it automatically goes to HomepanelView
@@ -270,12 +271,12 @@ class TopTabsTest: BaseTestCase {
             navigator.nowAt(NewTabScreen)
             waitForExistence(app.buttons["Show Tabs"], timeout: 10)
             app.buttons["Show Tabs"].press(forDuration: 1)
-            waitForExistence(app.cells.otherElements[ImageIdentifiers.newTab])
-            XCTAssertTrue(app.cells.otherElements[ImageIdentifiers.newTab].exists)
-            XCTAssertTrue(app.cells.otherElements["tab_close"].exists)
+            waitForExistence(app.cells.otherElements[StandardImageIdentifiers.Large.plus])
+            XCTAssertTrue(app.cells.otherElements[StandardImageIdentifiers.Large.plus].exists)
+            XCTAssertTrue(app.cells.otherElements[StandardImageIdentifiers.Large.cross].exists)
 
             // Open New Tab
-            app.cells.otherElements[ImageIdentifiers.newTab].tap()
+            app.cells.otherElements[StandardImageIdentifiers.Large.plus].tap()
             navigator.performAction(Action.CloseURLBarOpen)
 
             waitForTabsButton()
@@ -290,8 +291,8 @@ class TopTabsTest: BaseTestCase {
 
             waitForExistence(app.buttons["Show Tabs"])
             app.buttons["Show Tabs"].press(forDuration: 1)
-            waitForExistence(app.tables.cells.otherElements[ImageIdentifiers.newTab])
-            app.tables.cells.otherElements["tab_close"].tap()
+            waitForExistence(app.tables.cells.otherElements[StandardImageIdentifiers.Large.plus])
+            app.tables.cells.otherElements[StandardImageIdentifiers.Large.cross].tap()
             navigator.nowAt(NewTabScreen)
             checkNumberOfTabsExpectedToBeOpen(expectedNumberOfTabsOpen: 1)
 
@@ -402,26 +403,6 @@ class TopTabsTestIphone: IphoneOnlyTestCase {
         waitForExistence(app.buttons["Show Tabs"])
         let numTab = app.buttons["Show Tabs"].value as? String
         XCTAssertEqual("2", numTab)
-
-        // Go to Private mode and do the same
-        navigator.toggleOn(userState.isPrivate, withAction: Action.TogglePrivateMode)
-        navigator.openURL(urlExample)
-        waitUntilPageLoad()
-        waitForExistence(app.webViews.links.firstMatch)
-        app.webViews.links.firstMatch.press(forDuration: 1)
-        waitForExistence(app.buttons["Open in New Private Tab"])
-        app.buttons["Open in New Private Tab"].press(forDuration: 1)
-        waitForExistence(app.buttons["Switch"])
-        app.buttons["Switch"].tap()
-
-        // Check that the tab has changed
-        waitUntilPageLoad()
-        waitForExistence(app.textFields["url"], timeout: 5)
-        waitForValueContains(app.textFields["url"], value: "iana")
-        XCTAssertTrue(app.links["RFC 2606"].exists)
-        waitForExistence(app.buttons["Show Tabs"])
-        let numPrivTab = app.buttons["Show Tabs"].value as? String
-        XCTAssertEqual("2", numPrivTab)
     }
 
     // This test is disabled for iPad because the toast menu is not shown there

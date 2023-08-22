@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import UIKit
 import Shared
 import Storage
@@ -77,7 +78,9 @@ class TabPeekViewController: UIViewController, WKNavigationDelegate {
         let isHomeTab = self.tab?.isFxHomeTab ?? false
         if !self.ignoreURL && !urlIsTooLongToSave {
             if !self.isBookmarked && !isHomeTab {
-                actions.append(UIAction(title: .TabPeekAddToBookmarks, image: UIImage.templateImageNamed(ImageIdentifiers.addToBookmark), identifier: nil) { [weak self] _ in
+                actions.append(UIAction(title: .TabPeekAddToBookmarks,
+                                        image: UIImage.templateImageNamed(StandardImageIdentifiers.Large.bookmark),
+                                        identifier: nil) { [weak self] _ in
                     guard let wself = self, let tab = wself.tab else { return }
                     wself.delegate?.tabPeekDidAddBookmark(tab)
                 })
@@ -88,7 +91,9 @@ class TabPeekViewController: UIViewController, WKNavigationDelegate {
                     wself.delegate?.tabPeekRequestsPresentationOf(clientPicker)
                 })
             }
-            actions.append(UIAction(title: .TabPeekCopyUrl, image: UIImage.templateImageNamed(ImageIdentifiers.copyLink), identifier: nil) { [weak self] _ in
+            actions.append(UIAction(title: .TabPeekCopyUrl,
+                                    image: UIImage.templateImageNamed(StandardImageIdentifiers.Large.link),
+                                    identifier: nil) { [weak self] _ in
                 guard let wself = self, let url = wself.tab?.canonicalURL else { return }
 
                 UIPasteboard.general.url = url
@@ -96,7 +101,7 @@ class TabPeekViewController: UIViewController, WKNavigationDelegate {
             })
         }
         actions.append(UIAction(title: .TabPeekCloseTab,
-                                image: UIImage.templateImageNamed(ImageIdentifiers.closeTap),
+                                image: UIImage.templateImageNamed(StandardImageIdentifiers.Large.cross),
                                 identifier: nil) { [weak self] _ in
             guard let wself = self, let tab = wself.tab else { return }
             wself.delegate?.tabPeekDidCloseTab(tab)
@@ -180,8 +185,9 @@ class TabPeekViewController: UIViewController, WKNavigationDelegate {
             browserProfile.places.isBookmarked(url: displayURL) >>== { isBookmarked in
                 self.isBookmarked = isBookmarked
             }
+            browserProfile.tabs.getClientGUIDs { (result, error) in
+                guard let clientGUIDs = result else { return }
 
-            browserProfile.getClientGUIDs { clientGUIDs in
                 self.hasRemoteClients = !clientGUIDs.isEmpty
 
                 DispatchQueue.main.async {

@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import UIKit
 import Shared
 
@@ -70,5 +71,6 @@ extension ReaderModeButton: ThemeApplicable {
     func applyTheme(theme: Theme) {
         selectedTintColor = theme.colors.iconAction
         unselectedTintColor = theme.colors.iconSecondary
+        tintColor = isSelected ? selectedTintColor : unselectedTintColor
     }
 }

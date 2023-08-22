@@ -3,6 +3,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
 import XCTest
+import Common
 
 class PhotonActionSheetTest: BaseTestCase {
     // Smoketest
@@ -22,11 +23,11 @@ class PhotonActionSheetTest: BaseTestCase {
 
         // Remove pin
         cell.press(forDuration: 2)
-        app.tables.cells.otherElements[ImageIdentifiers.removeFromShortcut].tap()
+        app.tables.cells.otherElements[StandardImageIdentifiers.Large.pinSlash].tap()
 
         // Check that it has been unpinned
         cell.press(forDuration: 2)
-        waitForExistence(app.tables.cells.otherElements[ImageIdentifiers.addShortcut])
+        waitForExistence(app.tables.cells.otherElements[StandardImageIdentifiers.Large.pin])
     }
 
     func testShareOptionIsShown() {
@@ -85,7 +86,7 @@ class PhotonActionSheetTest: BaseTestCase {
         app.buttons["Send Tab"].tap()
 
         // User not logged in
-        waitForExistence(app.images["emptySync"])
+        waitForExistence(app.images[ImageIdentifiers.emptySyncImageName])
         XCTAssertTrue(app.staticTexts["You are not signed in to your Firefox Account."].exists)
     }*/
 

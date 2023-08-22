@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Glean
 import Shared
 import XCTest
@@ -31,7 +32,7 @@ class ContextMenuHelperTests: XCTestCase {
                                           isPrivate: false,
                                           tabManager: MockTabManager(),
                                           theme: LightTheme())
-        let helper = HomepageContextMenuHelper(viewModel: viewModel)
+        let helper = HomepageContextMenuHelper(viewModel: viewModel, toastContainer: UIView())
 
         helper.sendHistoryHighlightContextualTelemetry(type: .remove)
 

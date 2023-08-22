@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import UIKit
 import Shared
 
@@ -28,12 +29,12 @@ enum ReaderModeBarButtonType {
         case .markAsUnread: return "MarkAsUnread"
         case .settings: return "SettingsSerif"
         case .addToReadingList: return ImageIdentifiers.addToReadingList
-        case .removeFromReadingList: return ImageIdentifiers.removeFromReadingList
+        case .removeFromReadingList: return StandardImageIdentifiers.Large.delete
         }
     }
 
     var image: UIImage? {
-        let image = UIImage(named: imageName)
+        let image = UIImage(named: imageName)?.withRenderingMode(.alwaysTemplate)
         image?.accessibilityLabel = localizedDescription
         return image
     }
@@ -43,7 +44,7 @@ protocol ReaderModeBarViewDelegate: AnyObject {
     func readerModeBar(_ readerModeBar: ReaderModeBarView, didSelectButton buttonType: ReaderModeBarButtonType)
 }
 
-class ReaderModeBarView: UIView, AlphaDimmable, TopBottomInterchangeable {
+class ReaderModeBarView: UIView, AlphaDimmable, TopBottomInterchangeable, SearchBarLocationProvider {
     weak var delegate: ReaderModeBarViewDelegate?
 
     var parent: UIStackView?
@@ -111,7 +112,7 @@ class ReaderModeBarView: UIView, AlphaDimmable, TopBottomInterchangeable {
 
     private func createButton(_ type: ReaderModeBarButtonType, action: Selector) -> UIButton {
         let button: UIButton = .build { button in
-            button.setImage(type.image, for: [])
+            button.setImage(type.image, for: .normal)
             button.addTarget(self, action: action, for: .touchUpInside)
         }
         addSubview(button)
@@ -141,7 +142,7 @@ class ReaderModeBarView: UIView, AlphaDimmable, TopBottomInterchangeable {
     var unread = true {
         didSet {
             let buttonType: ReaderModeBarButtonType = unread && added ? .markAsRead : .markAsUnread
-            readStatusButton.setImage(buttonType.image, for: [])
+            readStatusButton.setImage(buttonType.image, for: .normal)
             readStatusButton.isEnabled = added
             readStatusButton.alpha = added ? 1.0 : 0.6
         }
@@ -150,7 +151,7 @@ class ReaderModeBarView: UIView, AlphaDimmable, TopBottomInterchangeable {
     var added = false {
         didSet {
             let buttonType: ReaderModeBarButtonType = added ? .removeFromReadingList : .addToReadingList
-            listStatusButton.setImage(buttonType.image, for: [])
+            listStatusButton.setImage(buttonType.image, for: .normal)
         }
     }
 }
@@ -161,5 +162,3 @@ extension ReaderModeBarView: ThemeApplicable {
         buttonTintColor = theme.colors.textPrimary
     }
 }
-
-extension ReaderModeBarView: SearchBarLocationProvider {}

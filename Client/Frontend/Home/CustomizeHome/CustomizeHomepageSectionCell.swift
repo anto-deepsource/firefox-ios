@@ -2,6 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
+import ComponentLibrary
 import UIKit
 import Shared
 
@@ -18,8 +20,8 @@ class CustomizeHomepageSectionCell: UICollectionViewCell, ReusableCell {
     // MARK: - UI Elements
     private let goToSettingsButton: ActionButton = .build { button in
         button.setTitle(.FirefoxHomepage.CustomizeHomepage.ButtonTitle, for: .normal)
-        button.titleLabel?.font = DynamicFontHelper.defaultHelper.preferredBoldFont(withTextStyle: .subheadline,
-                                                                                    size: UX.buttonFontSize)
+        button.titleLabel?.font = DefaultDynamicFontHelper.preferredBoldFont(withTextStyle: .subheadline,
+                                                                             size: UX.buttonFontSize)
         button.layer.cornerRadius = UX.buttonCornerRadius
         button.accessibilityIdentifier = a11y.customizeHome
         button.contentEdgeInsets = UIEdgeInsets(top: UX.buttonVerticalInset,

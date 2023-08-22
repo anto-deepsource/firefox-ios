@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Foundation
 import Shared
 
@@ -16,8 +17,8 @@ class PocketDiscoverCell: UICollectionViewCell, ReusableCell {
     // MARK: - UI Elements
     let itemTitle: UILabel = .build { label in
         label.adjustsFontForContentSizeCategory = true
-        label.font = DynamicFontHelper.defaultHelper.preferredBoldFont(withTextStyle: .title3,
-                                                                       size: UX.discoverMoreFontSize)
+        label.font = DefaultDynamicFontHelper.preferredBoldFont(withTextStyle: .title3,
+                                                                size: UX.discoverMoreFontSize)
         label.numberOfLines = 0
         label.textAlignment = .left
     }

@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import MappaMundi
 import XCTest
 
@@ -36,7 +37,18 @@ class BaseTestCase: XCTestCase {
                            LaunchArguments.DeviceName,
                            "\(LaunchArguments.ServerPort)\(serverPort)",
                            LaunchArguments.SkipContextualHints,
-                           LaunchArguments.TurnOffTabGroupsInUserPreferences]
+                           LaunchArguments.TurnOffTabGroupsInUserPreferences,
+                           LaunchArguments.DisableAnimations
+        ]
+
+    func restartInBackground() {
+        // Send app to background, and re-enter
+        XCUIDevice.shared.press(.home)
+        // Let's be sure the app is backgrounded
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        waitForExistence(springboard.icons["XCUITests-Runner"], timeout: 10)
+        app.activate()
+    }
 
     func setUpScreenGraph() {
         navigator = createScreenGraph(for: self, with: app).navigator()
@@ -126,15 +138,15 @@ class BaseTestCase: XCTestCase {
     func bookmark() {
         waitForExistence(app.buttons[AccessibilityIdentifiers.Toolbar.trackingProtection], timeout: TIMEOUT)
         navigator.goto(BrowserTabMenu)
-        waitForExistence(app.tables.otherElements[ImageIdentifiers.addToBookmark], timeout: TIMEOUT_LONG)
-        app.tables.otherElements[ImageIdentifiers.addToBookmark].tap()
+        waitForExistence(app.tables.otherElements[StandardImageIdentifiers.Large.bookmark], timeout: TIMEOUT_LONG)
+        app.tables.otherElements[StandardImageIdentifiers.Large.bookmark].tap()
         navigator.nowAt(BrowserTab)
     }
 
     func unbookmark() {
         navigator.goto(BrowserTabMenu)
-        waitForExistence(app.tables.otherElements["menu-Bookmark-Remove"])
-        app.otherElements["menu-Bookmark-Remove"].tap()
+        waitForExistence(app.tables.otherElements[StandardImageIdentifiers.Large.bookmarkSlash])
+        app.otherElements[StandardImageIdentifiers.Large.bookmarkSlash].tap()
         navigator.nowAt(BrowserTab)
     }
 
@@ -198,7 +210,7 @@ class BaseTestCase: XCTestCase {
         let app = XCUIApplication()
         UIPasteboard.general.string = url
         app.textFields["url"].press(forDuration: 2.0)
-        app.tables["Context Menu"].cells[ImageIdentifiers.pasteAndGo].firstMatch.tap()
+        app.tables["Context Menu"].cells[AccessibilityIdentifiers.Photon.pasteAndGoAction].firstMatch.tap()
 
         if waitForLoadToFinish {
             let finishLoadingTimeout: TimeInterval = 30
@@ -264,5 +276,30 @@ extension XCUIElement {
         } else if force {
             coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         }
+    }
+
+    /// Tap at @offsetPoint point in @self element view. This might not work for simulators lower than iPhone 14 Plus.
+    func tapAtPoint(_ offsetPoint: CGPoint) {
+        self.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0)).withOffset(CGVector(dx: offsetPoint.x, dy: offsetPoint.y)).tap()
+    }
+
+    /// Press at @offsetPoint point in @self element view
+    func pressAtPoint(_ offsetPoint: CGPoint, forDuration duration: TimeInterval) {
+        self.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0)).withOffset(CGVector(dx: offsetPoint.x, dy: offsetPoint.y)).press(forDuration: duration)
+    }
+
+    /// Tap on app screen at the central of the current element
+    func tapOnApp() {
+        coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+    }
+}
+
+extension XCUIElementQuery {
+    func containingText(_ text: String) -> XCUIElementQuery {
+        return matching(NSPredicate(format: "label CONTAINS %@ OR %@ == '' AND label != nil AND label != ''", text, text))
+    }
+
+    func elementContainingText(_ text: String) -> XCUIElement {
+        return containingText(text).element(boundBy: 0)
     }
 }

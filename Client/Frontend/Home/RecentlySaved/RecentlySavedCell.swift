@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Foundation
 import Storage
 import SiteImageView
@@ -25,8 +26,8 @@ class RecentlySavedCell: UICollectionViewCell, ReusableCell {
     private var heroImageView: HeroImageView = .build { _ in }
 
     let itemTitle: UILabel = .build { label in
-        label.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .body,
-                                                                   size: UX.bookmarkTitleFontSize)
+        label.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .body,
+                                                            size: UX.bookmarkTitleFontSize)
         label.adjustsFontForContentSizeCategory = true
     }
 

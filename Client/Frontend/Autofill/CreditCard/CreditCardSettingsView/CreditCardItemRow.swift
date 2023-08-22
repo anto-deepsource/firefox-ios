@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Foundation
 import SwiftUI
 import Storage
@@ -10,6 +11,9 @@ import Shared
 struct CreditCardItemRow: View {
     let item: CreditCard
     let isAccessibilityCategory: Bool
+    let shouldShowSeparator: Bool
+    var addPadding: Bool
+    var didSelectAction: (() -> Void)?
 
     // Theming
     @Environment(\.themeType)
@@ -18,6 +22,8 @@ struct CreditCardItemRow: View {
     @State var subTextColor: Color = .clear
     @State var separatorColor: Color = .clear
     @State var backgroundColor: Color = .clear
+    @State var backgroundHoverColor: Color = .clear
+    @State var isTapping = false
 
     var body: some View {
         VStack(alignment: .center, spacing: 0) {
@@ -44,7 +50,7 @@ struct CreditCardItemRow: View {
                         Text(item.ccType)
                             .font(.body)
                             .foregroundColor(titleTextColor)
-                        Text(item.ccNumberLast4)
+                        Text(verbatim: "••••\(item.ccNumberLast4)")
                             .font(.subheadline)
                             .foregroundColor(subTextColor)
                     }
@@ -59,7 +65,7 @@ struct CreditCardItemRow: View {
                         Text(String.CreditCard.DisplayCard.ExpiresLabel)
                             .font(.body)
                             .foregroundColor(subTextColor)
-                        Text(String(item.ccExpYear))
+                        Text(verbatim: "\(item.ccExpMonth)/\(item.ccExpYear % 100)")
                             .font(.subheadline)
                             .foregroundColor(subTextColor)
                     }
@@ -71,14 +77,24 @@ struct CreditCardItemRow: View {
             .padding(.trailing, 16)
             .padding(.top, 11)
             .padding(.bottom, 11)
-
+            .background(isTapping ? backgroundHoverColor : backgroundColor)
+            .onTapGesture {
+                isTapping = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isTapping = false
+                    didSelectAction?()
+                }
+            }
             Rectangle()
                 .fill(separatorColor)
                 .frame(maxWidth: .infinity)
                 .frame(height: 0.7)
                 .padding(.leading, 10)
                 .padding(.trailing, 10)
+                .opacity(shouldShowSeparator ? 1 : 0)
         }
+        .background(ClearBackgroundView())
+        .padding(.vertical, addPadding ? 8 : 0)
         .onAppear {
             applyTheme(theme: themeVal.theme)
         }
@@ -88,9 +104,9 @@ struct CreditCardItemRow: View {
     }
 
     func getImage(creditCard: CreditCard) -> Image {
-        let defaultImage = Image(ImageIdentifiers.creditCardPlaceholder)
+        let defaultImage = Image(StandardImageIdentifiers.Large.creditCard)
 
-        guard let type = CreditCardType(rawValue: creditCard.ccType),
+        guard let type = CreditCardType(rawValue: creditCard.ccType.uppercased()),
               let image = type.image else {
             return defaultImage
         }
@@ -103,7 +119,8 @@ struct CreditCardItemRow: View {
         titleTextColor = Color(color.textPrimary)
         subTextColor = Color(color.textSecondary)
         separatorColor = Color(color.borderPrimary)
-        backgroundColor = Color(color.layer2)
+        backgroundColor = Color(color.layer5)
+        backgroundHoverColor = Color(color.layer5Hover)
     }
 }
 
@@ -122,16 +139,37 @@ struct CreditCardItemRow_Previews: PreviewProvider {
                                     timesUsed: 123123)
 
         CreditCardItemRow(item: creditCard,
-                          isAccessibilityCategory: false)
+                          isAccessibilityCategory: false,
+                          shouldShowSeparator: true,
+                          addPadding: true)
 
         CreditCardItemRow(item: creditCard,
-                          isAccessibilityCategory: true)
+                          isAccessibilityCategory: true,
+                          shouldShowSeparator: true,
+                          addPadding: true)
             .environment(\.sizeCategory, .accessibilityExtraExtraExtraLarge)
             .previewDisplayName("Large")
 
         CreditCardItemRow(item: creditCard,
-                          isAccessibilityCategory: false)
+                          isAccessibilityCategory: false,
+                          shouldShowSeparator: true,
+                          addPadding: true)
             .environment(\.sizeCategory, .extraSmall)
             .previewDisplayName("Small")
     }
+}
+
+// Note: We use a clear view because Color.clear doesn't work
+// well if we embed a SwiftUI View inside a UIHostingController
+// and it displays black instead of clear color
+struct ClearBackgroundView: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        DispatchQueue.main.async {
+            view.superview?.superview?.backgroundColor = .clear
+        }
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {}
 }

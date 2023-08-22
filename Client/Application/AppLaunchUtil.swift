@@ -31,6 +31,7 @@ class AppLaunchUtil {
         }
 
         TelemetryWrapper.shared.setup(profile: profile)
+        recordUserPrefsTelemetry()
 
         // Need to get "settings.sendUsageData" this way so that Sentry can be initialized before getting the Profile.
         let sendUsageData = NSUserDefaultsPrefs(prefix: "profile").boolForKey(AppConstants.prefSendUsageData) ?? true
@@ -39,7 +40,7 @@ class AppLaunchUtil {
         setUserAgent()
 
         KeyboardHelper.defaultHelper.startObserving()
-        DynamicFontHelper.defaultHelper.startObserving()
+        LegacyDynamicFontHelper.defaultHelper.startObserving()
         MenuHelper.defaultHelper.setItems()
 
         // Initialize conversion value by specifying fineValue and coarseValue.
@@ -51,18 +52,13 @@ class AppLaunchUtil {
         // Among other things, it toggles on and off Nimbus, Contile, Adjust.
         // i.e. this must be run before initializing those systems.
         LegacyFeatureFlagsManager.shared.initializeDeveloperFeatures(with: profile)
-        FeatureFlagUserPrefsMigrationUtility(with: profile).attemptMigration()
-
-        // Migrate wallpaper folder
-        LegacyWallpaperMigrationUtility(with: profile).attemptMigration()
-        WallpaperManager().migrateLegacyAssets()
 
         // Start initializing the Nimbus SDK. This should be done after Glean
         // has been started.
         initializeExperiments()
 
         // We migrate history from browser db to places if it hasn't already
-        DispatchQueue.global(qos: .default).async {
+        DispatchQueue.global().async {
             self.runAppServicesHistoryMigration()
         }
 
@@ -84,6 +80,14 @@ class AppLaunchUtil {
 
         // Add swizzle on top of UIControl to automatically log when there's an action sent
         UIControl.loggerSwizzle()
+
+        logger.log("App version \(AppInfo.appVersion), Build number \(AppInfo.buildNumber)",
+                   level: .debug,
+                   category: .setup)
+
+        logger.log("Prefs for migration is \(String(describing: profile.prefs.boolForKey(PrefsKeys.TabMigrationKey)))",
+                   level: .debug,
+                   category: .tabs)
     }
 
     func setUpPostLaunchDependencies() {
@@ -184,5 +188,14 @@ class AppLaunchUtil {
                             level: .debug,
                             category: .sync)
         }
+    }
+
+    private func recordUserPrefsTelemetry() {
+        let isEnabled: Bool = (profile.prefs.boolForKey(PrefsKeys.UserFeatureFlagPrefs.SponsoredShortcuts) ?? true) &&
+                               (profile.prefs.boolForKey(PrefsKeys.FeatureFlags.TopSiteSection) ?? true)
+        TelemetryWrapper.recordEvent(category: .information,
+                                     method: .view,
+                                     object: .sponsoredShortcuts,
+                                     extras: [TelemetryWrapper.EventExtraKey.preference.rawValue: isEnabled])
     }
 }

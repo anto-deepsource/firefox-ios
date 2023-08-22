@@ -27,6 +27,7 @@ class CreditCardTableViewController: UIViewController, Themeable {
     var themeObserver: NSObjectProtocol?
     var notificationCenter: NotificationProtocol
     var didSelectCardAtIndex: ((_ creditCard: CreditCard) -> Void)?
+    var lastSelectedIndex: IndexPath?
 
     // MARK: View
     var toastView: UIHostingController<ToastView>
@@ -78,6 +79,12 @@ class CreditCardTableViewController: UIViewController, Themeable {
         viewSetup()
         listenForThemeChange(view)
         applyTheme()
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(didFinishAnnouncement),
+            name: UIAccessibility.announcementDidFinishNotification,
+            object: nil)
     }
 
     private func viewSetup() {
@@ -126,8 +133,24 @@ class CreditCardTableViewController: UIViewController, Themeable {
     deinit {
         notificationCenter.removeObserver(self)
     }
+
+    @objc
+    func didFinishAnnouncement(notification: Notification) {
+        if let userInfo = notification.userInfo,
+           let announcementText =  userInfo[UIAccessibility.announcementStringValueUserInfoKey] as? String {
+            let saveSuccessMessage: String = .CreditCard.SnackBar.SavedCardLabel
+            let updateSuccessMessage: String = .CreditCard.SnackBar.UpdatedCardLabel
+            let removeCardMessage: String = .CreditCard.SnackBar.RemovedCardLabel
+            if announcementText == saveSuccessMessage || announcementText == updateSuccessMessage  || announcementText == removeCardMessage {
+                if let lastIndex = lastSelectedIndex, let lastSelectedCell = tableView.cellForRow(at: lastIndex) {
+                    UIAccessibility.post(notification: .layoutChanged, argument: lastSelectedCell)
+                }
+            }
+        }
+    }
 }
 
+// MARK: UITableViewDelegate
 extension CreditCardTableViewController: UITableViewDelegate,
                                          UITableViewDataSource {
     func numberOfSections(in tableView: UITableView) -> Int {
@@ -159,17 +182,12 @@ extension CreditCardTableViewController: UITableViewDelegate,
         }
     }
 
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        didSelectCardAtIndex?(viewModel.creditCards[indexPath.row])
-        tableView.deselectRow(at: indexPath, animated: true)
-    }
-
     // MARK: - Private
     private func toggleCell() -> UITableViewCell {
         guard let hostingCell = tableView.dequeueReusableCell(
             withIdentifier: HostingTableViewCell<CreditCardAutofillToggle>.cellIdentifier) as? HostingTableViewCell<CreditCardAutofillToggle>,
               let model = viewModel.toggleModel else {
-            return UITableViewCell(style: .default, reuseIdentifier: "ClientCell")
+            return UITableViewCell()
         }
 
         let row = CreditCardAutofillToggle(textColor: themeManager.currentTheme.colors.textPrimary.color,
@@ -181,15 +199,24 @@ extension CreditCardTableViewController: UITableViewDelegate,
     private func creditCardCell(indexPath: IndexPath) -> UITableViewCell {
         guard let hostingCell = tableView.dequeueReusableCell(
             withIdentifier: HostingTableViewCell<CreditCardItemRow>.cellIdentifier) as? HostingTableViewCell<CreditCardItemRow> else {
-            return UITableViewCell(style: .default, reuseIdentifier: "ClientCell")
+            return UITableViewCell()
         }
-
+        let creditCardCount = viewModel.creditCards.count
         let creditCard = viewModel.creditCards[indexPath.row]
         let creditCardRow = CreditCardItemRow(
             item: creditCard,
-            isAccessibilityCategory: UIApplication.shared.preferredContentSizeCategory.isAccessibilityCategory)
+            isAccessibilityCategory: UIApplication.shared.preferredContentSizeCategory.isAccessibilityCategory,
+            shouldShowSeparator: indexPath.row < creditCardCount - 1 && creditCardCount > 1,
+            addPadding: false,
+            didSelectAction: { [weak self] in
+                self?.didSelectCardAtIndex?(creditCard)
+                self?.lastSelectedIndex = indexPath
+            })
         hostingCell.host(creditCardRow, parentController: self)
         hostingCell.accessibilityAttributedLabel = viewModel.a11yLabel(for: indexPath)
+        hostingCell.backgroundColor = .clear
+        hostingCell.contentView.backgroundColor = .clear
+        hostingCell.selectionStyle = .none
         hostingCell.isAccessibilityElement = true
         return hostingCell
     }

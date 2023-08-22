@@ -14,6 +14,8 @@ public struct Strings {
 
 // MARK: - Localization helper function
 
+/// Full documentation available in
+///
 /// Used to define a new string into the project
 /// - Parameters:
 ///   - key: The key should be unique and composed of a relevant name, ended with the version the string was included in.
@@ -21,15 +23,18 @@ public struct Strings {
 ///   section, added in v103. The name is clear and explicit.
 ///   - tableName: The tablename defines the name of the table containing the localized string.
 ///   This specifically need to be defined for any strings that is part of the messaging framework, but since any string can be part of messaging in the
-///   future all strings should have a tablename. This can be nil for existing strings, new string shouldn't have a nil tableName.
-///   - value: The value is always the text that needs to be localized.  This can be nil for existing strings, new string shouldn't have a nil value.
-///   - comment: The comment is an explanation aimed towards people that will translate the string value. Make sure it follow
+///   future all strings should have a tablename. This can be nil for existing strings, `new string shouldn't have a nil tableName`.
+///   - value: The value is always the text that needs to be localized.  This can be nil for existing strings, `new string shouldn't have a nil value`.
+///   - comment: The comment is an explanation aimed towards people that will translate the string value. Make sure it follow the l10n documentation
 ///   https://mozilla-l10n.github.io/documentation/localization/dev_best_practices.html#add-localization-notes
+///   - lastUsedInVersion: Whenever we remove or modify a string, we keep the translated version of that string a bit longer to ensure the last version it was
+///   used in will be release in the App Store before we remove the string from the l10n repository
 private func MZLocalizedString(
     key: String,
     tableName: String?,
     value: String?,
-    comment: String
+    comment: String,
+    lastUsedInVersion: Int? = nil
 ) -> String {
     return NSLocalizedString(key,
                              tableName: tableName,
@@ -40,18 +45,17 @@ private func MZLocalizedString(
 
 // This file contains all strings for Firefox iOS.
 //
-// As we continue to update strings, old strings may be present at the bottom of this
-// file. To preserve a clean implementation of strings, this file should be organized
-// alphabetically, according to specific screens or feature, on that screen. Each
-// string should be under a struct giving a clear indication as to where it is being
-// used. In this case we will prefer verbosity for the sake of accuracy, over brevity.
+// To preserve a clean structure of this string file, we should organize them alphabetically,
+// according to specific screens or feature, on that screen. Each string should
+// be under a struct giving a clear indication as to where it is being used.
+// In this case we will prefer verbosity for the sake of accuracy, over brevity.
 // Sub structs may, and should, also be used to separate functionality where it makes
 // sense, but efforts should be made to keep structs two levels deep unless there are
-// good reasons for doing otherwise.
+// good reasons for doing otherwise. As we continue to update strings, old strings may
+// be present at the bottom of this file.
 //
-// Note that some strings belong to one feature that appears across mulitple screens
-// throughout the application. An example is contextual hints. In this case, it makes
-// more sense to organize all those strings under the specific feature.
+// Note that strings shouldn't be reused in multiple places in the application. Depending
+// on the Locale we can't guarantee one string will be translated the same even if its value is the same.
 
 // MARK: - Alerts
 extension String {
@@ -90,6 +94,11 @@ extension String {
                 tableName: "BiometricAuthentication",
                 value: "Authenticate to access passwords.",
                 comment: "Biometric authentication is when the system prompts users for Face ID or fingerprint before accessing protected information. This string asks the user to enter their device passcode to access the protected screen.")
+            public static let UniversalAuthenticationReasonV2 = MZLocalizedString(
+                key: "Biometry.Screen.UniversalAuthenticationReasonV2.v116",
+                tableName: "BiometricAuthentication",
+                value: "Authenticate to access your saved logins and encrypted cards.",
+                comment: "Biometric authentication is when the system prompts users for Face ID or fingerprint before accessing protected information. This string asks the user to enter their device passcode to access the protected screen for logins and encrypted cards.")
         }
     }
 }
@@ -103,22 +112,6 @@ extension String {
                 tableName: nil,
                 value: "Desktop Bookmarks",
                 comment: "A label indicating all bookmarks grouped under the category 'Desktop Bookmarks'.")
-        }
-    }
-}
-
-// MARK: - Browser View Controller
-extension String {
-    public struct BVC {
-        public struct General {
-        }
-
-        public struct MenuItems {
-            public struct Hamburger {
-            }
-
-            public struct LongPressGesture {
-            }
         }
     }
 }
@@ -238,10 +231,10 @@ extension String {
                 value: "Done",
                 comment: "When a user is in the process of making a purchase and has at least one saved credit card, a view above the keyboard shows actions a user can take. When tapping this label, the keyboard will dismiss from view.")
             public static let ListItemA11y = MZLocalizedString(
-                key: "CreditCard.Settings.ListItemA11y.v112",
+                key: "CreditCard.Settings.ListItemA11y.v118",
                 tableName: "Settings",
-                value: "%1$@ ending in %2$@, issued to %3$@, expires %4$@",
-                comment: "Accessibility label for a credit card list item in autofill settings screen. The first parameter is the credit card type (e.g. Visa). The second parameter is the last 4 digits of the credit card. The third parameter is the name of the credit card holder. The fourth and fifth parameters are the month and year of the credit card's expiration date.")
+                value: "%1$@, issued to %2$@, ending in %3$@, expires %4$@",
+                comment: "Accessibility label for a credit card list item in autofill settings screen. The first parameter is the credit card issuer (e.g. Visa). The second parameter is is the name of the credit card holder. The third parameter is the last 4 digits of the credit card. The fourth parameter is the card's expiration date.")
         }
 
         // Displaying a credit card
@@ -291,9 +284,9 @@ extension String {
                 value: "Cancel",
                 comment: "Button label for cancelling editing of the credit card details shown in the form")
             public static let ViewCreditCardTitle = MZLocalizedString(
-                key: "CreditCard.EditCard.ViewCreditCardTitle.v113",
+                key: "CreditCard.EditCard.ViewCreditCardTitle.v116",
                 tableName: "EditCard",
-                value: "View Credit Card",
+                value: "View Card",
                 comment: "Title label for the view where user can view their credit card info")
             public static let AddCreditCardTitle = MZLocalizedString(
                 key: "CreditCard.EditCard.AddCreditCardTitle.v113",
@@ -328,7 +321,7 @@ extension String {
             public static let ToggleToAllowAutofillTitle = MZLocalizedString(
                 key: "CreditCard.EditCard.ToggleToAllowAutofillTitle.v112",
                 tableName: "EditCard",
-                value: "Save and autofill cards",
+                value: "Save and Autofill Cards",
                 comment: "Title label for user to use the toggle settings to allow saving and autofilling of credit cards for webpages.")
             public static let SavedCardListTitle = MZLocalizedString(
                 key: "CreditCard.EditCard.SavedCardListTitle.v112",
@@ -369,6 +362,11 @@ extension String {
                 tableName: "RememberCard",
                 value: "Not Now",
                 comment: "This value is used as the title for the Not Now button in the remember credit card page")
+            public static let CreditCardSaveSuccessToastMessage = MZLocalizedString(
+                key: "CreditCard.RememberCard.SecondaryButtonTitle.v116",
+                tableName: "RememberCard",
+                value: "New Card Saved",
+                comment: "This value is used as the toast message for the saving success alert in the remember credit card page")
         }
 
         // Update Card
@@ -393,6 +391,20 @@ extension String {
                 tableName: "UpdateCard",
                 value: "Not Now",
                 comment: "This value is used as the title for the Not Now button in the update credit card page")
+            public static let CreditCardUpdateSuccessToastMessage = MZLocalizedString(
+                key: "CreditCard.RememberCard.SecondaryButtonTitle.v116",
+                tableName: "UpdateCard",
+                value: "Card Information Updated",
+                comment: "This value is used as the toast message for the saving success alert in the remember credit card page")
+        }
+
+        // Select Credit Card
+        public struct SelectCreditCard {
+            public static let MainTitle = MZLocalizedString(
+                key: "CreditCard.SelectCreditCard.MainTitle.v116",
+                tableName: "SelectCreditCard",
+                value: "Use a saved card?",
+                comment: "This value is used as the title for the select a credit card from list of available cards.")
         }
 
         // Error States for wrong input while editing credit card
@@ -419,17 +431,17 @@ extension String {
             public static let SavedCardLabel = MZLocalizedString(
                 key: "CreditCard.SnackBar.SavedCardLabel.v112",
                 tableName: "SnackBar",
-                value: "New card saved",
+                value: "New Card Saved",
                 comment: "Label text that gets presented as a confirmation at the bottom of screen when credit card information gets saved successfully")
             public static let UpdatedCardLabel = MZLocalizedString(
                 key: "CreditCard.SnackBar.UpdatedCardLabel.v112",
                 tableName: "SnackBar",
-                value: "Card information updated",
+                value: "Card Information updated",
                 comment: "Label text that gets presented as a confirmation at the bottom of screen when credit card information gets updated successfully")
             public static let RemovedCardLabel = MZLocalizedString(
                 key: "CreditCard.SnackBar.RemovedCardLabel.v112",
                 tableName: "SnackBar",
-                value: "Card removed",
+                value: "Card Removed",
                 comment: "Label text that gets presented as a confirmation at the bottom of screen when the credit card is successfully removed.")
         }
 
@@ -460,11 +472,6 @@ extension String {
                 comment: "Button text to dismiss the dialog box that gets presented as a confirmation to to remove card and perform the operation of removing the credit card.")
         }
     }
-}
-
-// MARK: - Enhanced Tracking Protection screen
-extension String {
-    public struct ETPMenu { }
 }
 
 // MARK: - Firefox Homepage
@@ -588,15 +595,10 @@ extension String {
                 comment: "This string will show under the description on pocket story, indicating that the story is sponsored.")
             public struct Footer {
                 public static let Title = MZLocalizedString(
-                    key: "FirefoxHomepage.Pocket.Footer.Title.v115",
+                    key: "FirefoxHomepage.Pocket.Footer.Title.v116",
                     tableName: "Footer",
-                    value: "Powered by %@.",
-                    comment: "This is the title of the Pocket footer on Firefox Homepage. placeholder will be for App Name")
-                public static let Subtitle = MZLocalizedString(
-                    key: "FirefoxHomepage.Pocket.Footer.Subtitle.v115",
-                    tableName: "Footer",
-                    value: "Part of the %@ family.",
-                    comment: "This is the subtitle of the Pocket footer on Firefox Homepage. The placeholder is the app name.")
+                    value: "Powered by %@. Part of the %@ family.",
+                    comment: "This is the title of the Pocket footer on Firefox Homepage. The first placeholder is for the Pocket app name and the second placeholder for the app name")
                 public static let LearnMore = MZLocalizedString(
                     key: "FirefoxHomepage.Pocket.Footer.LearnMore.v115",
                     tableName: "Footer",
@@ -1133,11 +1135,6 @@ extension String {
     }
 }
 
-// MARK: - Passwords and Logins
-extension String {
-    public struct PasswordsAndLogins { }
-}
-
 // MARK: - Research Surface
 extension String {
     public struct ResearchSurface {
@@ -1234,11 +1231,16 @@ extension String {
                     tableName: nil,
                     value: "Recommended by Pocket",
                     comment: "In the settings menu, in the Firefox homepage customization section, this is the title for the option that allows users to turn the Pocket Recommendations section on the Firefox homepage on or off")
-                public static let SponsoredPocket = MZLocalizedString(
-                    key: "Settings.Home.Option.SponsoredPocket.v103",
-                    tableName: nil,
-                    value: "Sponsored stories",
-                    comment: "In the settings menu, in the Firefox homepage customization section, this is the title for the option that allows users to turn the Pocket Sponsored Stories on the Firefox homepage on or off")
+                public static let ThoughtProvokingStories = MZLocalizedString(
+                    key: "Settings.Home.Option.ThoughtProvokingStories.v116",
+                    tableName: "CustomizeFirefoxHome",
+                    value: "Thought-Provoking Stories",
+                    comment: "In the settings menu, in the Firefox homepage customization section, this is the title for the option that allows users to turn the Pocket Recommendations section on the Firefox homepage on or off")
+                public static let ThoughtProvokingStoriesSubtitle = MZLocalizedString(
+                    key: "Settings.Home.Option.ThoughtProvokingStories.subtitle.v116",
+                    tableName: "CustomizeFirefoxHome",
+                    value: "Articles powered by %@",
+                    comment: "In the settings menu, in the Firefox homepage customization section, this is the subtitle for the option that allows users to turn the Pocket Recommendations section on the Firefox homepage on or off. The placeholder is the pocket app name.")
                 public static let Title = MZLocalizedString(
                     key: "Settings.Home.Option.Title.v101",
                     tableName: nil,
@@ -1588,16 +1590,6 @@ extension String {
     }
 }
 
-// MARK: - Switch Default Browser Screen
-extension String {
-    public struct SwitchDefaultBrowser { }
-}
-
-// MARK: - Sync Screen
-extension String {
-    public struct SyncScreen { }
-}
-
 // MARK: - Tabs Tray
 extension String {
     public struct TabsTray {
@@ -1648,6 +1640,12 @@ extension String {
                 tableName: "TabsTray",
                 value: "Sync Tabs",
                 comment: "Button label to sync tabs in your Firefox Account")
+
+            public static let SyncTabsDisabled = MZLocalizedString(
+                key: "TabsTray.Sync.SyncTabsDisabled.v116",
+                tableName: "TabsTray",
+                value: "Turn on tab syncing to view a list of tabs from your other devices.",
+                comment: "Users can disable syncing tabs from other devices. In the Sync Tabs panel of the Tab Tray, we inform the user tab syncing can be switched back on to view those tabs.")
         }
     }
 }
@@ -1808,21 +1806,6 @@ extension String {
         tableName: nil,
         value: "Current Homepage",
         comment: "Title of the setting section containing the URL of the current home page.")
-    public static let ReopenLastTabAlertTitle = MZLocalizedString(
-        key: "ReopenAlert.Title",
-        tableName: nil,
-        value: "Reopen Last Closed Tab",
-        comment: "Reopen alert title shown at home page.")
-    public static let ReopenLastTabButtonText = MZLocalizedString(
-        key: "ReopenAlert.Actions.Reopen",
-        tableName: nil,
-        value: "Reopen",
-        comment: "Reopen button text shown in reopen-alert at home page.")
-    public static let ReopenLastTabCancelText = MZLocalizedString(
-        key: "ReopenAlert.Actions.Cancel",
-        tableName: nil,
-        value: "Cancel",
-        comment: "Cancel button text shown in reopen-alert at home page.")
 }
 
 // MARK: - Settings
@@ -3125,11 +3108,6 @@ extension String {
             tableName: nil,
             value: "Add",
             comment: "Label for the add bookmark button in the menu. Pressing this button bookmarks the current page. Please keep the text as short as possible for this label.")
-        public static let AddBookmarkAlternateTitle = MZLocalizedString(
-            key: "Menu.AddBookmark.AlternateLabel.v99",
-            tableName: nil,
-            value: "Add Bookmark",
-            comment: "Long label for the add bookmark button displayed in the menu. Pressing this button bookmarks the current page.")
         public static let AddBookmarkConfirmMessage = MZLocalizedString(
             key: "Menu.AddBookmark.Confirm",
             tableName: nil,
@@ -3140,11 +3118,6 @@ extension String {
             tableName: nil,
             value: "Remove",
             comment: "Label for the remove bookmark button in the menu. Pressing this button remove the current page from the bookmarks. Please keep the text as short as possible for this label.")
-        public static let RemoveBookmarkAlternateTitle = MZLocalizedString(
-            key: "Menu.RemoveBookmark.AlternateLabel.v99",
-            tableName: "Menu",
-            value: "Remove Bookmark",
-            comment: "Long label for the remove bookmark button displayed in the menu. Pressing this button remove the current page from the bookmarks.")
         public static let RemoveBookmarkConfirmMessage = MZLocalizedString(
             key: "Menu.RemoveBookmark.Confirm",
             tableName: nil,
@@ -3162,11 +3135,6 @@ extension String {
             tableName: nil,
             value: "Add",
             comment: "Label for the add to reading list button in the menu. Pressing this button adds the current page to the reading list. Please keep the text as short as possible for this label.")
-        public static let AddReadingListAlternateTitle = MZLocalizedString(
-            key: "Menu.AddToReadingList.AlternateLabel.v99",
-            tableName: "Menu",
-            value: "Add to Reading List",
-            comment: "Long label for the button displayed in the menu, used to add a page to the reading list.")
         public static let AddToReadingListConfirmMessage = MZLocalizedString(
             key: "Menu.AddToReadingList.Confirm",
             tableName: nil,
@@ -3177,11 +3145,6 @@ extension String {
             tableName: nil,
             value: "Remove",
             comment: "Label for the remove from reading list button in the menu. Pressing this button removes the current page from the reading list. Please keep the text as short as possible for this label.")
-        public static let RemoveReadingListAlternateTitle = MZLocalizedString(
-            key: "Menu.RemoveReadingList.AlternateLabel.v99",
-            tableName: nil,
-            value: "Remove from Reading List",
-            comment: "Long label for the remove from reading list button in the menu. Pressing this button removes the current page from the reading list.")
         public static let RemoveFromReadingListConfirmMessage = MZLocalizedString(
             key: "Menu.RemoveReadingList.Confirm.v99",
             tableName: nil,
@@ -3606,6 +3569,61 @@ extension String {
         comment: "Share extension label shown after user has performed 'Load in Background' action.")
 }
 
+extension String {
+    public struct Shopping {
+        public static let SheetHeaderTitle = MZLocalizedString(
+            key: "", // Shopping.Sheet.Title.v118
+            tableName: "Shopping",
+            value: "Review quality check",
+            comment: "Label for the header of the Shopping Experience (Fakespot) sheet")
+        public static let ReliabilityCardTitle = MZLocalizedString(
+            key: "", // Shopping.ReviewQuality.ReliabilityCardTitle.v118
+            tableName: "Shopping",
+            value: "How reliable are these reviews?",
+            comment: "Title of the reliability card displayed in the shopping review quality bottom sheet.")
+        public static let ReliabilityRatingAB = MZLocalizedString(
+            key: "", // Shopping.ReviewQuality.ReliabilityRating.AB.Description.v118
+            tableName: "Shopping",
+            value: "Reliable reviews",
+            comment: "Description of the reliability ratings for rating 'A' and 'B' displayed in the shopping review quality bottom sheet.")
+        public static let ReliabilityRatingC = MZLocalizedString(
+            key: "", // Shopping.ReviewQuality.ReliabilityRating.C.Description.v118
+            tableName: "Shopping",
+            value: "Only some reliable reviews",
+            comment: "Description of the reliability rating 'C' displayed in the shopping review quality bottom sheet.")
+        public static let ReliabilityRatingDF = MZLocalizedString(
+            key: "", // Shopping.ReviewQuality.ReliabilityRating.DF.Description.v118
+            tableName: "Shopping",
+            value: "Unreliable reviews",
+            comment: "Description of the reliability ratings for rating 'D' and 'F' displayed in the shopping review quality bottom sheet.")
+        public static let ErrorCardTitle = MZLocalizedString(
+            key: "", // Shopping.ErrorCard.Title.v118
+            tableName: "Shopping",
+            value: "Something Went Wrong",
+            comment: "Title of the error displayed in the shopping review quality bottom sheet.")
+        public static let ErrorCardDescription = MZLocalizedString(
+            key: "", // Shopping.ErrorCard.Description.v118
+            tableName: "Shopping",
+            value: "Couldn’t load information. Please try again.",
+            comment: "Description of the error displayed in the shopping review quality bottom sheet.")
+        public static let ErrorCardButtonText = MZLocalizedString(
+            key: "", // Shopping.ErrorCard.Button.Text.v118
+            tableName: "Shopping",
+            value: "Try Again",
+            comment: "Button text of the error displayed in the shopping review quality bottom sheet.")
+        public static let HighlightsCardFooterText = MZLocalizedString(
+            key: "", // Shopping.HighlightsCard.Footer.Text.v118
+            tableName: "Shopping",
+            value: "Summarized using information provided by Fakespot.com.",
+            comment: "Footer text of the review highlights displayed in the shopping review quality bottom sheet.")
+        public static let HighlightsCardFooterButtonText = MZLocalizedString(
+            key: "", // Shopping.HighlightsCard.Footer.Button.Text.v118
+            tableName: "Shopping",
+            value: "View full analysis",
+            comment: "Footer button text of the review highlights displayed in the shopping review quality bottom sheet.")
+    }
+}
+
 // MARK: - Translation bar
 extension String {
     public static let TranslateSnackBarPrompt = MZLocalizedString(
@@ -3978,7 +3996,6 @@ extension String {
         tableName: nil,
         value: "This action will clear the selected items. It cannot be undone.",
         comment: "Description of the confirmation dialog shown when a user tries to clear some of their private data.")
-    // TODO: these look like the same as in ClearPrivateDataAlert, I think we can remove them
     public static let ClearWebsiteDataAlertCancel = MZLocalizedString(
         key: "Cancel",
         tableName: "ClearPrivateDataConfirm",
@@ -3998,7 +4015,6 @@ extension String {
         tableName: "ClearHistoryConfirm",
         value: nil,
         comment: "Description of the confirmation dialog shown when a user tries to clear history that's synced to another device.")
-    // TODO: these look like the same as in ClearPrivateDataAlert, I think we can remove them
     public static let ClearSyncedHistoryAlertCancel = MZLocalizedString(
         key: "Cancel",
         tableName: "ClearHistoryConfirm",

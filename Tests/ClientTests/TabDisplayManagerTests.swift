@@ -10,7 +10,7 @@ import XCTest
 import Common
 
 class TabDisplayManagerTests: XCTestCase {
-    var tabCellIdentifier: TabDisplayer.TabCellIdentifier = TopTabCell.cellIdentifier
+    var tabCellIdentifier: TabDisplayerDelegate.TabCellIdentifier = TopTabCell.cellIdentifier
 
     var mockDataStore: WeakListMock<Tab>!
     var dataStore: WeakList<Tab>!
@@ -305,7 +305,7 @@ class TabDisplayManagerTests: XCTestCase {
     func testInactiveTabs_grid_closeTabs() {
         let tabDisplayManager = createTabDisplayManager(useMockDataStore: false)
         tabDisplayManager.tabDisplayType = .TabGrid
-        tabDisplayManager.inactiveViewModel = InactiveTabViewModel()
+        tabDisplayManager.inactiveViewModel = InactiveTabViewModel(theme: LightTheme())
 
         // Add four tabs (2 inactive, 2 active)
         let inactiveTab1 = manager.addTab()
@@ -320,24 +320,20 @@ class TabDisplayManagerTests: XCTestCase {
                                                              inactiveTab2]
 
         // Force collectionView reload section to avoid crash
-        collectionView.reloadSections(IndexSet(integer: 0))
         cfrDelegate.isUndoButtonPressed = false
         // Force collectionView reload to avoid crash
         collectionView.reloadSections(IndexSet(integer: 0))
         tabDisplayManager.didTapCloseInactiveTabs(tabsCount: 2)
 
-        let expectation = self.expectation(description: "TabDisplayManagerTests")
-        tabDisplayManager.refreshStore {
-            XCTAssertTrue(tabDisplayManager.inactiveViewModel?.inactiveTabs.isEmpty ?? false, "Inactive tabs should be empty after closing")
-            expectation.fulfill()
-        }
-        waitForExpectations(timeout: 5)
+        // For delete all inactive tabs we don't actually delete the tabs we collapse
+        // the section and delete after toast delay
+        XCTAssertTrue(tabDisplayManager.inactiveViewModel?.shouldHideInactiveTabs ?? false, "Inactive tabs should be empty after closing")
     }
 
     func testInactiveTabs_grid_undoSingleTab() {
         let tabDisplayManager = createTabDisplayManager(useMockDataStore: false)
         tabDisplayManager.tabDisplayType = .TabGrid
-        tabDisplayManager.inactiveViewModel = InactiveTabViewModel()
+        tabDisplayManager.inactiveViewModel = InactiveTabViewModel(theme: LightTheme())
 
         // Add three tabs (2 inactive, 1 active)
         let inactiveTab1 = manager.addTab()
@@ -357,15 +353,17 @@ class TabDisplayManagerTests: XCTestCase {
         tabDisplayManager.closeInactiveTab(inactiveTab1, index: 0)
 
         let expectation = self.expectation(description: "TabDisplayManagerTests")
-        XCTAssertEqual(tabDisplayManager.inactiveViewModel?.inactiveTabs.count, 2, "Expected 2 inactive tabs after undo")
-        expectation.fulfill()
+        tabDisplayManager.refreshStore {
+            XCTAssertEqual(tabDisplayManager.inactiveViewModel?.inactiveTabs.count, 2, "Expected 2 inactive tabs after undo")
+            expectation.fulfill()
+        }
         waitForExpectations(timeout: 5)
     }
 
     func testInactiveTabs_grid_closeSingleTab() {
         let tabDisplayManager = createTabDisplayManager(useMockDataStore: false)
         tabDisplayManager.tabDisplayType = .TabGrid
-        tabDisplayManager.inactiveViewModel = InactiveTabViewModel()
+        tabDisplayManager.inactiveViewModel = InactiveTabViewModel(theme: LightTheme())
 
         // Add three tabs (2 inactive, 1 active)
         let inactiveTab1 = manager.addTab()
@@ -385,15 +383,20 @@ class TabDisplayManagerTests: XCTestCase {
         tabDisplayManager.closeInactiveTab(inactiveTab1, index: 0)
 
         let expectation = self.expectation(description: "TabDisplayManagerTests")
-        XCTAssertEqual(tabDisplayManager.inactiveViewModel?.inactiveTabs.count, 1, "Expected 1 inactive tab after deletion")
-        expectation.fulfill()
+        // Add delay so the tab removal finishes and the refreshStore gets the right tabs data
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
+            tabDisplayManager.refreshStore {
+                XCTAssertEqual(tabDisplayManager.inactiveViewModel?.inactiveTabs.count, 1, "Expected 1 inactive tab after deletion")
+                expectation.fulfill()
+            }
+        }
         waitForExpectations(timeout: 5)
     }
 
     func testInactiveTabs_grid_undoCloseTabs() {
         let tabDisplayManager = createTabDisplayManager(useMockDataStore: false)
         tabDisplayManager.tabDisplayType = .TabGrid
-        tabDisplayManager.inactiveViewModel = InactiveTabViewModel()
+        tabDisplayManager.inactiveViewModel = InactiveTabViewModel(theme: LightTheme())
 
         // Add four tabs (2 inactive, 2 active)
         let inactiveTab1 = manager.addTab()
@@ -481,6 +484,11 @@ class TabDisplayManagerTests: XCTestCase {
 
         XCTAssertEqual(manager.privateTabs.count, 3, "Expected 3 tabs")
     }
+
+    func testTabDisplayManager_doesntLeak() {
+        let subject = createTabDisplayManager(useMockDataStore: false)
+        trackForMemoryLeaks(subject)
+    }
 }
 
 // Helper methods
@@ -494,7 +502,9 @@ extension TabDisplayManagerTests {
         waitForExpectations(timeout: 5, handler: nil)
     }
 
-    func createTabDisplayManager(useMockDataStore: Bool = true) -> TabDisplayManager {
+    func createTabDisplayManager(file: StaticString = #file,
+                                 line: UInt = #line,
+                                 useMockDataStore: Bool = true) -> TabDisplayManager {
         let tabDisplayManager = TabDisplayManager(collectionView: collectionView,
                                                   tabManager: manager,
                                                   tabDisplayer: self,
@@ -505,6 +515,7 @@ extension TabDisplayManagerTests {
                                                   theme: LightTheme())
         collectionView.dataSource = tabDisplayManager
         tabDisplayManager.dataStore = useMockDataStore ? mockDataStore : dataStore
+        trackForMemoryLeaks(tabDisplayManager, file: file, line: line)
         return tabDisplayManager
     }
 
@@ -522,6 +533,7 @@ extension TabDisplayManagerTests {
                                                   cfrDelegate: cfrDelegate,
                                                   theme: LightTheme())
         collectionView.dataSource = tabDisplayManager
+        trackForMemoryLeaks(tabDisplayManager)
         return tabDisplayManager
     }
 
@@ -538,7 +550,7 @@ extension TabDisplayManagerTests {
     }
 }
 
-extension TabDisplayManagerTests: TabDisplayer {
+extension TabDisplayManagerTests: TabDisplayerDelegate {
     func focusSelectedTab() {}
 
     func cellFactory(for cell: UICollectionViewCell, using tab: Tab) -> UICollectionViewCell {

@@ -3,6 +3,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
 import UIKit
+import Storage
 @testable import Client
 
 class MockBrowserViewController: BrowserViewController {
@@ -33,7 +34,6 @@ class MockBrowserViewController: BrowserViewController {
     var handleQueryCount = 0
     var showLibraryCount = 0
     var openURLInNewTabCount = 0
-
     var presentSignInFxaOptions: FxALaunchParams?
     var presentSignInFlowType: FxAPageType?
     var presentSignInReferringPage: ReferringPage?
@@ -45,6 +45,12 @@ class MockBrowserViewController: BrowserViewController {
     var embedContentCalled = 0
     var frontEmbeddedContentCalled = 0
     var saveEmbeddedContent: ContentContainable?
+
+    var didRequestToOpenInNewTabCalled = false
+    var didSelectURLCalled = false
+    var lastOpenedURL: URL?
+    var lastVisitType: VisitType?
+    var isPrivate = false
 
     override func switchToPrivacyMode(isPrivate: Bool) {
         switchToPrivacyModeCalled = true
@@ -112,5 +118,17 @@ class MockBrowserViewController: BrowserViewController {
     override func frontEmbeddedContent(_ viewController: ContentContainable) {
         frontEmbeddedContentCalled += 1
         saveEmbeddedContent = viewController
+    }
+
+    override func libraryPanelDidRequestToOpenInNewTab(_ url: URL, isPrivate: Bool) {
+        didRequestToOpenInNewTabCalled = true
+        lastOpenedURL = url
+        self.isPrivate = isPrivate
+    }
+
+    override func libraryPanel(didSelectURL url: URL, visitType: VisitType) {
+        didSelectURLCalled = true
+        lastOpenedURL = url
+        lastVisitType = visitType
     }
 }

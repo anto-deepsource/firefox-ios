@@ -114,14 +114,36 @@ extension AppDelegate {
     func application(_ application: UIApplication,
                      didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         var notificationAllowed = true
-        if LegacyFeatureFlagsManager.shared.isFeatureEnabled(.notificationSettings, checking: .buildOnly) {
+        if UserDefaults.standard.object(forKey: PrefsKeys.Notifications.SyncNotifications) != nil {
             notificationAllowed = UserDefaults.standard.bool(forKey: PrefsKeys.Notifications.SyncNotifications)
         }
 
-        if notificationAllowed {
-            RustFirefoxAccounts.shared.pushNotifications.didRegister(withDeviceToken: deviceToken)
-        } else {
+        guard notificationAllowed else {
             RustFirefoxAccounts.shared.pushNotifications.disableNotifications()
+            return
+        }
+
+        guard LegacyFeatureFlagsManager.shared.isFeatureEnabled(.autopushFeature, checking: .buildOnly) else {
+            RustFirefoxAccounts.shared.pushNotifications.didRegister(withDeviceToken: deviceToken)
+            return
+        }
+        // We set this here because the NotificationService can't depend on the nimbus setting yet
+        // and will read the profile pref directly
+        LegacyFeatureFlagsManager.shared.set(feature: .autopushFeature, to: true)
+        Task {
+            do {
+                let autopush = try await Autopush(files: profile.files)
+                try await autopush.updateToken(withDeviceToken: deviceToken)
+                let fxaSubscription = try await autopush.subscribe(scope: RustFirefoxAccounts.pushScope)
+                RustFirefoxAccounts.shared.pushNotifications.updatePushRegistration(subscriptionResponse: fxaSubscription)
+            } catch let error {
+                logger.log(
+                    "Failed to update push registration",
+                    level: .warning,
+                    category: .setup,
+                    description: error.localizedDescription
+                )
+            }
         }
     }
 

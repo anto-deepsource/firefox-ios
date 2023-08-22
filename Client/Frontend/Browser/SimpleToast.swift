@@ -2,15 +2,23 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Foundation
 import Shared
 
 struct SimpleToast: ThemeApplicable {
     private let toastLabel: UILabel = .build { label in
-        label.font = DynamicFontHelper.defaultHelper.preferredBoldFont(withTextStyle: .body,
-                                                                       size: Toast.UX.fontSize)
+        label.font = DefaultDynamicFontHelper.preferredBoldFont(withTextStyle: .body,
+                                                                size: Toast.UX.fontSize)
         label.numberOfLines = 0
         label.textAlignment = .center
+    }
+
+    private let heightConstraint: NSLayoutConstraint
+
+    init() {
+        heightConstraint = toastLabel.heightAnchor
+            .constraint(equalToConstant: Toast.UX.toastHeight)
     }
 
     func showAlertWithText(_ text: String,
@@ -20,13 +28,17 @@ struct SimpleToast: ThemeApplicable {
         toastLabel.text = text
         bottomContainer.addSubview(toastLabel)
         NSLayoutConstraint.activate([
+            heightConstraint,
             toastLabel.widthAnchor.constraint(equalTo: bottomContainer.widthAnchor),
             toastLabel.leadingAnchor.constraint(equalTo: bottomContainer.leadingAnchor),
-            toastLabel.bottomAnchor.constraint(equalTo: bottomContainer.bottomAnchor, constant: bottomConstraintPadding),
-            toastLabel.heightAnchor.constraint(equalToConstant: Toast.UX.toastHeight),
+            toastLabel.bottomAnchor.constraint(equalTo: bottomContainer.safeAreaLayoutGuide.bottomAnchor,
+                                               constant: bottomConstraintPadding)
         ])
         applyTheme(theme: theme)
         animate(toastLabel)
+        if UIAccessibility.isVoiceOverRunning {
+            UIAccessibility.post(notification: .announcement, argument: text)
+        }
     }
 
     func applyTheme(theme: Theme) {
@@ -38,10 +50,8 @@ struct SimpleToast: ThemeApplicable {
         UIView.animate(
             withDuration: Toast.UX.toastAnimationDuration,
             animations: {
-                var frame = toast.frame
-                frame.origin.y = frame.origin.y + Toast.UX.toastHeight
-                frame.size.height = 0
-                toast.frame = frame
+                heightConstraint.constant = 0
+                toast.superview?.layoutIfNeeded()
             },
             completion: { finished in
                 toast.removeFromSuperview()
@@ -59,7 +69,8 @@ struct SimpleToast: ThemeApplicable {
                 toast.frame = frame
             },
             completion: { finished in
-                let dispatchTime = DispatchTime.now() + Toast.UX.toastDismissAfter
+                let voiceOverDelay = UIAccessibility.isVoiceOverRunning ? DispatchTimeInterval.milliseconds(1000) : DispatchTimeInterval.milliseconds(0)
+                let dispatchTime = DispatchTime.now() + Toast.UX.toastDismissAfter + voiceOverDelay
 
                 DispatchQueue.main.asyncAfter(deadline: dispatchTime, execute: {
                     self.dismiss(toast)

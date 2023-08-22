@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Foundation
 import Shared
 
@@ -40,22 +41,22 @@ class ButtonToast: Toast {
     }
 
     private var titleLabel: UILabel = .build { label in
-        label.font = DynamicFontHelper.defaultHelper.preferredBoldFont(withTextStyle: .body,
-                                                                       size: UX.titleFontSize)
+        label.font = DefaultDynamicFontHelper.preferredBoldFont(withTextStyle: .body,
+                                                                size: UX.titleFontSize)
         label.numberOfLines = 0
     }
 
     private var descriptionLabel: UILabel = .build { label in
-        label.font = DynamicFontHelper.defaultHelper.preferredBoldFont(withTextStyle: .body,
-                                                                       size: UX.descriptionFontSize)
+        label.font = DefaultDynamicFontHelper.preferredBoldFont(withTextStyle: .body,
+                                                                size: UX.descriptionFontSize)
         label.numberOfLines = 0
     }
 
     private var roundedButton: UIButton = .build { button in
         button.layer.cornerRadius = UX.buttonBorderRadius
         button.layer.borderWidth = UX.buttonBorderWidth
-        button.titleLabel?.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .body,
-                                                                                size: Toast.UX.fontSize)
+        button.titleLabel?.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .body,
+                                                                         size: Toast.UX.fontSize)
         button.titleLabel?.numberOfLines = 1
         button.titleLabel?.lineBreakMode = .byClipping
         button.titleLabel?.adjustsFontSizeToFitWidth = true

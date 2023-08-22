@@ -65,30 +65,73 @@ enum Route: Equatable {
         case downloads
         case newPrivateTab = "new-private-tab"
         case newTab = "new-tab"
+
+        var libraryPanel: LibraryPanelType {
+            switch self {
+            case .bookmarks: return .bookmarks
+            case .history: return .history
+            case .readingList: return .readingList
+            case .downloads: return .downloads
+            default: return . bookmarks
+            }
+        }
     }
 
     /// An enumeration representing different sections of the settings menu.
     enum SettingsSection: String, CaseIterable, Equatable {
+        case contentBlocker
         case clearPrivateData = "clear-private-data"
-        case newTab = "newtab"
+        case creditCard
+        case password
+        case fxa
+        case general
         case homePage = "homepage"
         case mailto
+        case newTab = "newtab"
         case search
-        case fxa
-        case systemDefaultBrowser = "system-default-browser"
-        case wallpaper
-        case theme
-        case contentBlocker
-        case toolbar
         case tabs
+        case theme
+        case toolbar
         case topSites
-        case general
+        case wallpaper
+        case rateApp
+
+        // Will be clean up with FXIOS-6529
+        func getSettingsRoute() -> AppSettingsDeeplinkOption? {
+            switch self {
+            case .contentBlocker:
+                return .contentBlocker
+            case .homePage:
+                return .customizeHomepage
+            case .tabs:
+                return .customizeTabs
+            case .toolbar:
+                return .customizeToolbar
+            case .topSites:
+                return .customizeTopSites
+            case .wallpaper:
+                return .wallpaper
+            case .creditCard:
+                return .creditCard
+            case .fxa:
+                return .fxa
+            case .mailto:
+                return .mailto
+            case .newTab:
+                return .newTab
+            case .search:
+                return .search
+            case .clearPrivateData, .general, .theme, .password, .rateApp:
+                return nil // not handling those since not needed to temporary fix #14954
+            }
+        }
     }
 
     /// An enumeration representing different actions that can be performed within the application.
     enum AppAction: String, CaseIterable, Equatable {
         case closePrivateTabs = "close-private-tabs"
         case showQRCode
+        case showIntroOnboarding = "show-intro-onboarding"
     }
 
     /// An enumeration representing different sections of the default browser settings.

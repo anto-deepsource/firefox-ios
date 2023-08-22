@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Shared
 import SiteImageView
 
@@ -44,15 +45,14 @@ class OneLineTableViewCell: UITableViewCell,
     lazy var leftImageView: FaviconImageView = .build { _ in }
 
     lazy var titleLabel: UILabel = .build { label in
-        label.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .body,
-                                                                   size: UX.labelFontSize)
+        label.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .body,
+                                                            size: UX.labelFontSize)
         label.textAlignment = .natural
     }
 
     private lazy var bottomSeparatorView: UIView = .build { separatorLine in
         // separator hidden by default
         separatorLine.isHidden = true
-        separatorLine.backgroundColor = UIColor.Photon.Grey40
     }
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
@@ -132,7 +132,7 @@ class OneLineTableViewCell: UITableViewCell,
     func configure(viewModel: OneLineTableViewCellViewModel) {
         titleLabel.text = viewModel.title
         accessoryView = viewModel.accessoryView
-        editingAccessoryType = viewModel.accessoryType
+        accessoryType = viewModel.accessoryType
 
         if let image = viewModel.leftImageView {
             leftImageView.image = image
@@ -149,5 +149,6 @@ class OneLineTableViewCell: UITableViewCell,
         backgroundColor = theme.colors.layer5
         titleLabel.textColor = theme.colors.textPrimary
         bottomSeparatorView.backgroundColor = theme.colors.borderPrimary
+        accessoryView?.tintColor = theme.colors.actionSecondary
     }
 }

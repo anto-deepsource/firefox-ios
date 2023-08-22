@@ -21,9 +21,11 @@ class LibraryViewController: UIViewController, Themeable {
         }
     }
 
+    var childPanelControllers = [UINavigationController]()
     var viewModel: LibraryViewModel
     var notificationCenter: NotificationProtocol
     weak var delegate: LibraryPanelDelegate?
+    weak var navigationHandler: LibraryNavigationHandler?
     var onViewDismissed: (() -> Void)?
     var themeManager: ThemeManager
     var themeObserver: NSObjectProtocol?
@@ -51,7 +53,7 @@ class LibraryViewController: UIViewController, Themeable {
 
     private lazy var topLeftButton: UIBarButtonItem =  {
         let button = UIBarButtonItem(
-            image: UIImage.templateImageNamed(ImageIdentifiers.menuGoBack)?.imageFlippedForRightToLeftLayoutDirection(),
+            image: UIImage.templateImageNamed(StandardImageIdentifiers.Large.chevronLeft)?.imageFlippedForRightToLeftLayoutDirection(),
             style: .plain,
             target: self,
             action: #selector(topLeftButtonAction))
@@ -131,6 +133,12 @@ class LibraryViewController: UIViewController, Themeable {
         LegacyThemeManager.instance.statusBarStyle
     }
 
+    func resetHistoryPanelPagination() {
+        if CoordinatorFlagManager.isLibraryCoordinatorEnabled {
+            viewModel.resetHistoryPanelPagination()
+        }
+    }
+
     func updateViewWithState() {
         setupButtons()
     }
@@ -196,17 +204,26 @@ class LibraryViewController: UIViewController, Themeable {
         guard let index = viewModel.selectedPanel?.rawValue,
               index < viewModel.panelDescriptors.count else { return }
 
-        viewModel.setupNavigationController()
-        if let panelVC = self.viewModel.panelDescriptors[index].viewController,
-           let navigationController = self.viewModel.panelDescriptors[index].navigationController {
-            let accessibilityLabel = self.viewModel.panelDescriptors[index].accessibilityLabel
-            let accessibilityId = self.viewModel.panelDescriptors[index].accessibilityIdentifier
-            setupLibraryPanel(panelVC,
-                              accessibilityLabel: accessibilityLabel,
-                              accessibilityIdentifier: accessibilityId)
-            self.showPanel(navigationController)
+        if CoordinatorFlagManager.isLibraryCoordinatorEnabled {
+            let panelDescriptor = viewModel.panelDescriptors[index]
+            if let panelVC = childPanelControllers[index].topViewController {
+                let panelNavigationController = childPanelControllers[index]
+                setupLibraryPanel(panelVC, accessibilityLabel: panelDescriptor.accessibilityLabel, accessibilityIdentifier: panelDescriptor.accessibilityIdentifier)
+                showPanel(panelNavigationController)
+                navigationHandler?.start(panelType: viewModel.selectedPanel ?? .bookmarks, navigationController: panelNavigationController)
+            }
+        } else {
+            viewModel.setupNavigationController()
+            if let panelVC = self.viewModel.panelDescriptors[index].viewController,
+               let navigationController = self.viewModel.panelDescriptors[index].navigationController {
+                let accessibilityLabel = self.viewModel.panelDescriptors[index].accessibilityLabel
+                let accessibilityId = self.viewModel.panelDescriptors[index].accessibilityIdentifier
+                setupLibraryPanel(panelVC,
+                                  accessibilityLabel: accessibilityLabel,
+                                  accessibilityIdentifier: accessibilityId)
+                self.showPanel(navigationController)
+            }
         }
-
         librarySegmentControl.selectedSegmentIndex = viewModel.selectedPanel?.rawValue ?? 0
     }
 
@@ -246,13 +263,19 @@ class LibraryViewController: UIViewController, Themeable {
     }
 
     private func topLeftButtonSetup() {
-        switch viewModel.currentPanelState {
+        var panelState: LibraryPanelMainState
+        if CoordinatorFlagManager.isLibraryCoordinatorEnabled {
+            panelState = getCurrentPanelState()
+        } else {
+            panelState = viewModel.currentPanelState
+        }
+        switch panelState {
         case .bookmarks(state: .inFolder),
              .history(state: .inFolder):
-            topLeftButton.image = UIImage.templateImageNamed(ImageIdentifiers.menuGoBack)?.imageFlippedForRightToLeftLayoutDirection()
+            topLeftButton.image = UIImage.templateImageNamed(StandardImageIdentifiers.Large.chevronLeft)?.imageFlippedForRightToLeftLayoutDirection()
             navigationItem.leftBarButtonItem = topLeftButton
         case .bookmarks(state: .itemEditMode), .bookmarks(state: .itemEditModeInvalidField):
-            topLeftButton.image = UIImage.templateImageNamed("nav-stop")
+            topLeftButton.image = UIImage.templateImageNamed(StandardImageIdentifiers.Large.cross)
             navigationItem.leftBarButtonItem = topLeftButton
         default:
             navigationItem.leftBarButtonItem = nil
@@ -260,7 +283,13 @@ class LibraryViewController: UIViewController, Themeable {
     }
 
     private func topRightButtonSetup() {
-        switch viewModel.currentPanelState {
+        var panelState: LibraryPanelMainState
+        if CoordinatorFlagManager.isLibraryCoordinatorEnabled {
+            panelState = getCurrentPanelState()
+        } else {
+            panelState = viewModel.currentPanelState
+        }
+        switch panelState {
         case .bookmarks(state: .inFolderEditMode):
             navigationItem.rightBarButtonItem = nil
         case .bookmarks(state: .itemEditMode):
@@ -278,8 +307,29 @@ class LibraryViewController: UIViewController, Themeable {
         }
     }
 
+    private func getCurrentPanelState() -> LibraryPanelMainState {
+        if let panelVC = getCurrentPanel() {
+            return panelVC.state
+        }
+        return .bookmarks(state: .inFolder)
+    }
+
+    func getCurrentPanel() -> LibraryPanel? {
+        let panelNavigationController = childPanelControllers[viewModel.selectedPanel?.rawValue ?? 0]
+        if let panelVC = panelNavigationController.topViewController as? LibraryPanel {
+            return panelVC
+        }
+        return nil
+    }
+
     private func bottomToolbarButtonSetup() {
-        guard let panel = viewModel.currentPanel else { return }
+        var panel: LibraryPanel?
+        if CoordinatorFlagManager.isLibraryCoordinatorEnabled {
+            panel = getCurrentPanel()
+        } else {
+            panel = viewModel.currentPanel
+        }
+        guard let panel = panel else { return }
 
         let shouldHideBar = shouldHideBottomToolbar(panel: panel)
         navigationController?.setToolbarHidden(shouldHideBar, animated: true)

@@ -114,6 +114,30 @@ public struct AccessibilityIdentifiers {
         public static let back = "Back"
     }
 
+    struct Shopping {
+        static let sheetHeaderTitle = "Shopping.Sheet.HeaderTitle"
+
+        struct ErrorCard {
+            static let card = "Shopping.ErrorCard.Card"
+            static let title = "Shopping.ErrorCard.Title"
+            static let description = "Shopping.ErrorCard.Description"
+            static let primaryAction = "Shopping.ErrorCard.PrimaryAction"
+        }
+
+        struct ReliabilityCard {
+            static let card = "Shopping.ReliabilityCard.Card"
+            static let title = "Shopping.ReliabilityCard.Title"
+            static let ratingLetter = "Shopping.ReliabilityCard.RatingLetter"
+            static let ratingDescription = "Shopping.ReliabilityCard.RatingDescription"
+        }
+
+        struct HighlightsCard {
+            static let card = "Shopping.HighlightsCard.Card"
+            static let footerTitle = "Shopping.HighlightsCard.FooterTitle"
+            static let footerAction = "Shopping.HighlightsCard.FooterAction"
+        }
+    }
+
     struct TabTray {
         static let filteredTabs = "filteredTabs"
         static let deleteCloseAllButton = "TabTrayController.deleteButton.closeAll"
@@ -126,6 +150,7 @@ public struct AccessibilityIdentifiers {
         static let doneButton = "doneButtonTabTray"
         static let syncTabsButton = "syncTabsButtonTabTray"
         static let navBarSegmentedControl = "navBarTabTray"
+        static let syncDataButton = "syncDataButton"
     }
 
     struct LibraryPanels {
@@ -179,6 +204,7 @@ public struct AccessibilityIdentifiers {
 
     struct Settings {
         static let tableViewController = "AppSettingsTableViewController.tableView"
+        static let navigationBarItem = "AppSettingsTableViewController.navigationItem.rightBarButtonItem"
 
         struct Homepage {
             static let homeSettings = "Home"
@@ -206,7 +232,6 @@ public struct AccessibilityIdentifiers {
                 static let jumpBackIn = "Jump Back In"
                 static let recentlySaved = "Recently Saved"
                 static let recentVisited = "Recently Visited"
-                static let recommendedByPocket = "Recommended by Pocket"
                 static let wallpaper = "WallpaperSettings"
             }
         }
@@ -223,18 +248,57 @@ public struct AccessibilityIdentifiers {
         }
 
         struct Search {
+            static let title = "Search"
             static let customEngineViewButton = "customEngineViewButton"
             static let searchNavigationBar = "Search"
             static let deleteMozillaEngine = "Delete Mozilla Engine"
             static let deleteButton = "Delete"
         }
 
+        struct AdvancedAccountSettings {
+            static let title = "AdvancedAccount.Setting"
+        }
+
         struct Logins {
-            static let loginsSettings = "Logins"
+            static let title = "Logins"
         }
 
         struct ClearData {
-            static let clearPrivatedata = "ClearPrivateData"
+            static let title = "ClearPrivateData"
+            static let websiteDataSection = "WebsiteData"
+            static let clearPrivateDataSection = "ClearPrivateData"
+        }
+
+        struct Notifications {
+            static let title = "NotificationsSetting"
+        }
+
+        struct CreditCard {
+            static let title = "AutofillCreditCard"
+        }
+
+        struct ConnectSetting {
+            static let title = "SignInToSync"
+        }
+
+        struct ContentBlocker {
+            static let title = "TrackingProtection"
+        }
+
+        struct NewTab {
+            static let title = "NewTab"
+        }
+
+        struct NoImageMode {
+            static let title = "NoImageMode"
+        }
+
+        struct BlockPopUp {
+            static let title = "BlockPopUp"
+        }
+
+        struct OpenWithMail {
+            static let title = "OpenWith.Setting"
         }
 
         struct SearchBar {
@@ -243,8 +307,50 @@ public struct AccessibilityIdentifiers {
             static let bottomSetting = "BottomSearchBar"
         }
 
+        struct SendAnonymousUsageData {
+            static let title = "SendAnonymousUsageData"
+        }
+
+        struct ShowIntroduction {
+            static let title = "ShowTour"
+        }
+
+        struct Siri {
+            static let title = "SiriSettings"
+        }
+
+        struct StudiesToggle {
+            static let title = "StudiesToggle"
+        }
+
+        struct Tabs {
+            static let title = "TabsSetting"
+        }
+
+        struct Theme {
+            static let title = "DisplayThemeOption"
+        }
+
         struct BlockImages {
-            static let blockImages = "Block Images"
+            static let title = "Block Images"
+        }
+
+        struct Passwords {
+            static let usernameField = "usernameField"
+            static let passwordField = "passwordField"
+            static let websiteField = "websiteField"
+            static let onboardingContinue = "onboardingContinue"
+            static let addCredentialButton = "addCredentialButton"
+            static let editButton = "editButton"
+        }
+
+        struct Version {
+            static let title = "FxVersion"
+        }
+
+        struct TrackingProtection {
+            static let basic = "Settings.TrackingProtectionOption.BlockListBasic"
+            static let strict = "Settings.TrackingProtectionOption.BlockListStrict"
         }
     }
 
@@ -267,15 +373,13 @@ public struct AccessibilityIdentifiers {
         static let closeButton = "PhotonMenu.close"
         static let view = "Action Sheet"
         static let tableView = "Context Menu"
+        static let pasteAction = "pasteAction"
+        static let pasteAndGoAction = "pasteAndGoAction"
     }
 
     struct Alert {
         static let cancelDownloadResume = "cancelDownloadAlert.resume"
         static let cancelDownloadCancel = "cancelDownloadAlert.cancel"
-    }
-
-    struct Setting {
-        static let notifications = "NotificationsSetting"
     }
 
     struct ZoomPageBar {
@@ -286,11 +390,18 @@ public struct AccessibilityIdentifiers {
 
     struct FindInPage {
         static let findInPageCloseButton = "FindInPage.closeButton"
+        static let findNextButton = "FindInPage.find_next"
+        static let findPreviousButton = "FindInPage.find_previous"
     }
 
     struct RememberCreditCard {
         static let rememberCreditCardHeader = "RememberCreditCard.Header"
         static let yesButton = "RememberCreditCard.yesButton"
         static let notNowButton = "RememberCreditCard.notNowButton"
+    }
+
+    struct ActionFooter {
+        static let title = "ActionFooter.title"
+        static let primaryAction = "ActionFooter.primaryAction"
     }
 }

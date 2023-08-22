@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Foundation
 import Storage
 import SwiftUI
@@ -17,6 +18,8 @@ struct CreditCardInputView: View {
     @State var backgroundColor: Color = .clear
     @State var borderColor: Color = .clear
     @State var textFieldBackgroundColor: Color = .clear
+    @State var barButtonColor: Color = .clear
+    @State var saveButtonDisabledColor: Color = .clear
 
     var body: some View {
         NavigationView {
@@ -82,9 +85,11 @@ struct CreditCardInputView: View {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         rightBarButton()
                             .disabled(!viewModel.isRightBarButtonEnabled)
+                            .foregroundColor(barButtonColor)
                     }
                     ToolbarItem(placement: .navigationBarLeading) {
                         leftBarButton()
+                            .foregroundColor(barButtonColor)
                     }
                 }
                 .padding(.top, 0)
@@ -114,6 +119,8 @@ struct CreditCardInputView: View {
         let color = theme.colors
         backgroundColor = Color(color.layer1)
         textFieldBackgroundColor = Color(color.layer2)
+        barButtonColor = Color(color.actionPrimary)
+        saveButtonDisabledColor = Color(color.textSecondary)
     }
 
     func rightBarButton() -> some View {
@@ -149,6 +156,10 @@ struct CreditCardInputView: View {
                     }
                 }
             }
+        }
+        .foregroundColor(viewModel.isRightBarButtonEnabled ? barButtonColor : saveButtonDisabledColor)
+        .onDisappear {
+            viewModel.isRightBarButtonEnabled = false
         }
     }
 

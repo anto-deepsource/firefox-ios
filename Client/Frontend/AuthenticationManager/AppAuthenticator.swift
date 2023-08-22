@@ -10,12 +10,35 @@ enum AuthenticationError: Error {
     case failedAutentication(message: String)
 }
 
+enum AuthenticationState {
+    case deviceOwnerAuthenticated
+    case deviceOwnerFailed
+    case passCodeRequired
+}
+
 protocol AppAuthenticationProtocol {
+    var canAuthenticateDeviceOwner: Bool { get }
+
+    func getAuthenticationState(completion: @escaping (AuthenticationState) -> Void)
     func authenticateWithDeviceOwnerAuthentication(_ completion: @escaping (Result<Void, AuthenticationError>) -> Void)
-    func canAuthenticateDeviceOwner() -> Bool
 }
 
 class AppAuthenticator: AppAuthenticationProtocol {
+    func getAuthenticationState(completion: @escaping (AuthenticationState) -> Void) {
+        if canAuthenticateDeviceOwner {
+            authenticateWithDeviceOwnerAuthentication { result in
+                switch result {
+                case .success:
+                    completion(.deviceOwnerAuthenticated)
+                case .failure:
+                    completion(.deviceOwnerFailed)
+                }
+            }
+        } else {
+            completion(.passCodeRequired)
+        }
+    }
+
     func authenticateWithDeviceOwnerAuthentication(_ completion: @escaping (Result<Void, AuthenticationError>) -> Void) {
         // Get a fresh context for each login. If you use the same context on multiple attempts
         //  (by commenting out the next line), then a previously successful authentication
@@ -25,7 +48,7 @@ class AppAuthenticator: AppAuthenticationProtocol {
 
         // First check if we have the needed hardware support.
         var error: NSError?
-        let localizedErrorMessage = String.Biometry.Screen.UniversalAuthenticationReason
+        let localizedErrorMessage = String.Biometry.Screen.UniversalAuthenticationReasonV2
         if context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) {
             context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: localizedErrorMessage) { success, error in
                 if success {
@@ -45,7 +68,7 @@ class AppAuthenticator: AppAuthenticationProtocol {
         }
     }
 
-    func canAuthenticateDeviceOwner() -> Bool {
+    var canAuthenticateDeviceOwner: Bool {
         return LAContext().canEvaluatePolicy(.deviceOwnerAuthentication, error: nil)
     }
 }

@@ -7,14 +7,11 @@ import Shared
 import Storage
 
 protocol LibraryPanelDelegate: AnyObject {
-    func libraryPanelDidRequestToSignIn()
-    func libraryPanelDidRequestToCreateAccount()
     func libraryPanelDidRequestToOpenInNewTab(_ url: URL, isPrivate: Bool)
     func libraryPanel(didSelectURL url: URL, visitType: VisitType)
-    func libraryPanel(didSelectURLString url: String, visitType: VisitType)
 }
 
-protocol LibraryPanel: UIViewController, LegacyNotificationThemeable {
+protocol LibraryPanel: UIViewController {
     var libraryPanelDelegate: LibraryPanelDelegate? { get set }
     var state: LibraryPanelMainState { get set }
     var bottomToolbarItems: [UIBarButtonItem] { get }
@@ -62,6 +59,15 @@ enum LibraryPanelType: Int, CaseIterable {
             return .AppMenu.AppMenuDownloadsTitleString
         case .readingList:
             return .AppMenu.AppMenuReadingListTitleString
+        }
+    }
+
+    var homepanelSection: Route.HomepanelSection {
+        switch self {
+        case .bookmarks: return .bookmarks
+        case .history: return .history
+        case .readingList: return .readingList
+        case .downloads: return .downloads
         }
     }
 }

@@ -2,6 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
+import ComponentLibrary
 import Foundation
 import Shared
 
@@ -25,7 +27,8 @@ protocol OnboardingCardDelegate: AnyObject {
                               selector: Selector?,
                               completion: (() -> Void)?,
                               referringPage: ReferringPage)
-    func presentDefaultBrowserPopup()
+    func presentDefaultBrowserPopup(from name: String,
+                                    completionIfLastCard: (() -> Void)?)
 
     func presentSignToSync(
         with fxaOptions: FxALaunchParams,
@@ -34,7 +37,7 @@ protocol OnboardingCardDelegate: AnyObject {
         flowType: FxAPageType,
         referringPage: ReferringPage)
 
-    func showNextPage(from cardNamed: String, completionIfLastCard completion: () -> Void)
+    func showNextPage(from cardNamed: String, completionIfLastCard completion: (() -> Void)?)
     func pageChanged(from cardName: String)
 }
 
@@ -69,16 +72,33 @@ extension OnboardingCardDelegate where Self: OnboardingViewControllerProtocol,
     }
 
     // MARK: - Default Browser Popup
-    // TODO: https://mozilla-hub.atlassian.net/browse/FXIOS-6359
-    func presentDefaultBrowserPopup() {
-        guard let a11yIdRoot = viewModel.availableCards.first?.viewModel.a11yIdRoot else { return }
-        let infoModel = OnboardingDefaultBrowserInfoModel(a11yIdRoot: a11yIdRoot)
-        let viewController = OnboardingDefaultSettingsViewController(viewModel: infoModel)
-        var bottomSheetViewModel = BottomSheetViewModel()
+    func presentDefaultBrowserPopup(
+        from name: String,
+        completionIfLastCard: (() -> Void)?
+    ) {
+        guard let popupViewModel = viewModel
+            .availableCards
+            .first(where: { $0.viewModel.name == name })?
+            .viewModel
+            .instructionsPopup
+        else { return }
+
+        let instructionsVC = OnboardingInstructionPopupViewController(
+            viewModel: popupViewModel,
+            buttonTappedFinishFlow: {
+                self.showNextPage(
+                    from: name,
+                    completionIfLastCard: completionIfLastCard)
+            }
+        )
+        var bottomSheetViewModel = BottomSheetViewModel(closeButtonA11yLabel: .CloseButtonTitle)
         bottomSheetViewModel.shouldDismissForTapOutside = true
         let bottomSheetVC = BottomSheetViewController(
             viewModel: bottomSheetViewModel,
-            childViewController: viewController)
+            childViewController: instructionsVC,
+            usingDimmedBackground: true)
+
+        instructionsVC.dismissDelegate = bottomSheetVC
 
         self.present(bottomSheetVC, animated: false, completion: nil)
     }
@@ -113,10 +133,10 @@ extension OnboardingCardDelegate where Self: OnboardingViewControllerProtocol,
     // MARK: - Page helpers
     func showNextPage(
         from cardName: String,
-        completionIfLastCard completion: () -> Void
+        completionIfLastCard completion: (() -> Void)?
     ) {
         guard cardName != viewModel.availableCards.last?.viewModel.name else {
-            completion()
+            completion?()
             return
         }
 

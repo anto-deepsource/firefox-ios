@@ -289,115 +289,11 @@ public class RustPlaces: BookmarksHandler, HistoryMetadataObserver {
         return error
     }
 
-    public func syncBookmarks(unlockInfo: SyncUnlockInfo) -> Success {
-        let deferred = Success()
-
-        writerQueue.async {
-            guard self.isOpen else {
-                deferred.fill(Maybe(failure: PlacesConnectionError.connUseAfterApiClosed as MaybeErrorType))
-                return
-            }
-
-            do {
-                try _ = self.api?.syncBookmarks(unlockInfo: unlockInfo)
-                deferred.fill(Maybe(success: ()))
-            } catch let err as NSError {
-                if let placesError = err as? PlacesApiError {
-                    self.logger.log("Places error when syncing Places database",
-                                    level: .warning,
-                                    category: .storage,
-                                    description: placesError.localizedDescription)
-                } else {
-                    self.logger.log("Unknown error when opening Rust Places database",
-                                    level: .warning,
-                                    category: .storage,
-                                    description: err.localizedDescription)
-                }
-
-                deferred.fill(Maybe(failure: err))
-            }
-        }
-
-        return deferred
-    }
-
-    public func syncHistory(unlockInfo: SyncUnlockInfo) -> Success {
-        let deferred = Success()
-
-        writerQueue.async {
-            guard self.isOpen else {
-                deferred.fill(Maybe(failure: PlacesConnectionError.connUseAfterApiClosed as MaybeErrorType))
-                return
-            }
-
-            do {
-                try _ = self.api?.syncHistory(unlockInfo: unlockInfo)
-                deferred.fill(Maybe(success: ()))
-            } catch let err as NSError {
-                if let placesError = err as? PlacesApiError {
-                    self.logger.log("Places error when syncing Places database",
-                                    level: .warning,
-                                    category: .storage,
-                                    description: placesError.localizedDescription)
-                } else {
-                    self.logger.log("Unknown error when opening Rust Places database",
-                                    level: .warning,
-                                    category: .sync,
-                                    description: err.localizedDescription)
-                }
-
-                deferred.fill(Maybe(failure: err))
-            }
-        }
-
-        return deferred
-    }
-
     public func registerWithSyncManager() {
         writerQueue.async { [unowned self] in
             self.api?.registerWithSyncManager()
         }
     }
-
-    public func resetBookmarksMetadata() -> Success {
-        let deferred = Success()
-
-        writerQueue.async {
-            guard self.isOpen else {
-                deferred.fill(Maybe(failure: PlacesConnectionError.connUseAfterApiClosed as MaybeErrorType))
-                return
-            }
-
-            do {
-                try self.api?.resetBookmarkSyncMetadata()
-                deferred.fill(Maybe(success: ()))
-            } catch let error {
-                deferred.fill(Maybe(failure: error as MaybeErrorType))
-            }
-        }
-
-        return deferred
-    }
-
-    public func resetHistoryMetadata() -> Success {
-         let deferred = Success()
-
-         writerQueue.async {
-             guard self.isOpen else {
-                 deferred.fill(Maybe(failure: PlacesConnectionError.connUseAfterApiClosed as MaybeErrorType))
-                 return
-             }
-
-             do {
-                 try self.api?.resetHistorySyncMetadata()
-                 deferred.fill(Maybe(success: ()))
-             } catch let error {
-                 deferred.fill(Maybe(failure: error as MaybeErrorType))
-             }
-         }
-
-         return deferred
-     }
 
     public func getHistoryMetadataSince(since: Int64) -> Deferred<Maybe<[HistoryMetadata]>> {
         return withReader { connection in

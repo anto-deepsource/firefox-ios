@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import XCTest
 
 let website_1 = ["url": "www.mozilla.org", "label": "Internet for people, not profit — Mozilla", "value": "mozilla.org"]
@@ -107,8 +108,6 @@ class NavigationTest: BaseTestCase {
         navigator.performAction(Action.ToggleSyncMode)
 
         app.tables.buttons[AccessibilityIdentifiers.Settings.FirefoxAccount.fxaSettingsButton].tap()
-        waitForExistence(app.buttons["EmailSignIn.button"], timeout: TIMEOUT)
-        app.buttons["EmailSignIn.button"].tap()
         checkFirefoxSyncScreenShown()
     }
 
@@ -153,53 +152,32 @@ class NavigationTest: BaseTestCase {
         XCTAssertTrue(app.buttons["Bookmark Link"].exists, "The option is not shown")
     }
 
-    func testLongPressLinkOptionsPrivateMode() {
+    // Only testing Share and Copy Link, the other two options are already covered in other tests
+    func testCopyLink() {
+        longPressLinkOptions(optionSelected: "Copy Link")
+        navigator.goto(NewTabScreen)
+        app.textFields["url"].press(forDuration: 2)
+
+        waitForExistence(app.tables["Context Menu"])
+        app.tables.otherElements[AccessibilityIdentifiers.Photon.pasteAction].tap()
+        app.buttons["Go"].tap()
+        waitUntilPageLoad()
+        waitForValueContains(app.textFields["url"], value: website_2["moreLinkLongPressInfo"]!)
+    }
+
+    func testCopyLinkPrivateMode() {
         navigator.nowAt(NewTabScreen)
         navigator.toggleOn(userState.isPrivate, withAction: Action.TogglePrivateMode)
+        longPressLinkOptions(optionSelected: "Copy Link")
+        navigator.goto(NewTabScreen)
+        waitForExistence(app.textFields["url"])
+        app.textFields["url"].press(forDuration: 2)
 
-        navigator.openURL(path(forTestPage: "test-example.html"))
-        waitForExistence(app.webViews.links[website_2["link"]!], timeout: TIMEOUT)
-        app.webViews.links[website_2["link"]!].press(forDuration: 2)
-        waitForExistence(app.collectionViews.staticTexts[website_2["moreLinkLongPressUrl"]!], timeout: TIMEOUT)
-        XCTAssertFalse(app.buttons["Open in New Tab"].exists, "The option is not shown")
-        XCTAssertTrue(app.buttons["Open in New Private Tab"].exists, "The option is not shown")
-        XCTAssertTrue(app.buttons["Copy Link"].exists, "The option is not shown")
-        XCTAssertTrue(app.buttons["Download Link"].exists, "The option is not shown")
-    }
-    // Only testing Share and Copy Link, the other two options are already covered in other tests
-    func testCopyLink() throws {
-        if processIsTranslatedStr() == m1Rosetta {
-            throw XCTSkip("Copy & paste may not work on M1")
-        } else {
-            longPressLinkOptions(optionSelected: "Copy Link")
-            navigator.goto(NewTabScreen)
-            app.textFields["url"].press(forDuration: 2)
-
-            waitForExistence(app.tables["Context Menu"])
-            app.tables.otherElements[ImageIdentifiers.paste].tap()
-            app.buttons["Go"].tap()
-            waitUntilPageLoad()
-            waitForValueContains(app.textFields["url"], value: website_2["moreLinkLongPressInfo"]!)
-        }
-    }
-
-    func testCopyLinkPrivateMode() throws {
-        if processIsTranslatedStr() == m1Rosetta {
-            throw XCTSkip("Copy & paste may not work on M1")
-        } else {
-            navigator.performAction(Action.CloseURLBarOpen)
-            navigator.nowAt(NewTabScreen)
-            navigator.toggleOn(userState.isPrivate, withAction: Action.TogglePrivateMode)
-            longPressLinkOptions(optionSelected: "Copy Link")
-            navigator.goto(NewTabScreen)
-            waitForExistence(app.textFields["url"])
-            app.textFields["url"].press(forDuration: 2)
-
-            app.tables.otherElements[ImageIdentifiers.paste].tap()
-            app.buttons["Go"].tap()
-            waitUntilPageLoad()
-            waitForValueContains(app.textFields["url"], value: website_2["moreLinkLongPressInfo"]!)
-        }
+        app.tables.otherElements[AccessibilityIdentifiers.Photon.pasteAction].tap()
+        waitForExistence(app.buttons["Go"])
+        app.buttons["Go"].tap()
+        waitUntilPageLoad()
+        waitForValueContains(app.textFields["url"], value: website_2["moreLinkLongPressInfo"]!)
     }
 
     func testLongPressOnAddressBar() throws {
@@ -240,7 +218,7 @@ class NavigationTest: BaseTestCase {
             waitForNoExistence(app.staticTexts["XCUITests-Runner pasted from Fennec"])
 
             app.textFields["url"].press(forDuration: 3)
-            app.tables.otherElements[ImageIdentifiers.copyLink].tap()
+            app.tables.otherElements[StandardImageIdentifiers.Large.link].tap()
 
             sleep(2)
             app.textFields["url"].tap()
@@ -264,6 +242,15 @@ class NavigationTest: BaseTestCase {
     }
 
     private func longPressLinkOptions(optionSelected: String) {
+        navigator.nowAt(NewTabScreen)
+        if app.buttons["Done"].exists {
+            app.buttons["Done"].tap()
+        }
+        navigator.goto(ClearPrivateDataSettings)
+        app.cells.switches["Downloaded Files"].tap()
+        navigator.performAction(Action.AcceptClearPrivateData)
+
+        navigator.goto(HomePanelsScreen)
         navigator.openURL(path(forTestPage: "test-example.html"))
         waitUntilPageLoad()
         app.webViews.links[website_2["link"]!].press(forDuration: 2)
@@ -273,20 +260,20 @@ class NavigationTest: BaseTestCase {
     func testDownloadLink() {
         longPressLinkOptions(optionSelected: "Download Link")
         waitForExistence(app.tables["Context Menu"])
-        XCTAssertTrue(app.tables["Context Menu"].otherElements["download"].exists)
-        app.tables["Context Menu"].otherElements["download"].tap()
+        XCTAssertTrue(app.tables["Context Menu"].otherElements[StandardImageIdentifiers.Large.download].exists)
+        app.tables["Context Menu"].otherElements[StandardImageIdentifiers.Large.download].tap()
         navigator.goto(BrowserTabMenu)
         navigator.goto(LibraryPanel_Downloads)
         waitForExistence(app.tables["DownloadsTable"])
         // There should be one item downloaded. It's name and size should be shown
         let downloadedList = app.tables["DownloadsTable"].cells.count
         XCTAssertEqual(downloadedList, 1, "The number of items in the downloads table is not correct")
-        XCTAssertTrue(app.tables.cells.staticTexts["reserved.html"].exists)
+        XCTAssertTrue(app.tables.cells.staticTexts["example-domains.html"].exists)
 
         // Tap on the just downloaded link to check that the web page is loaded
-        app.tables.cells.staticTexts["reserved.html"].tap()
+        app.tables.cells.staticTexts["example-domains.html"].tap()
         waitUntilPageLoad()
-        waitForValueContains(app.textFields["url"], value: "reserved.html")
+        waitForValueContains(app.textFields["url"], value: "example-domains.html")
     }
 
     func testShareLink() {
@@ -310,7 +297,7 @@ class NavigationTest: BaseTestCase {
 //        navigator.nowAt(BrowserTab)
 //        waitForExistence(app.buttons["TabToolbar.menuButton"], timeout: TIMEOUT)
 //        navigator.goto(SettingsScreen)
-//        waitForExistence(app.tables["AppSettingsTableViewController.tableView"])
+//        waitForExistence(app.tables[AccessibilityIdentifiers.Settings.tableViewController])
 //        let switchBlockPopUps = app.tables.cells.switches["blockPopups"]
 //        let switchValue = switchBlockPopUps.value!
 //        XCTAssertEqual(switchValue as? String, "1")
@@ -358,7 +345,7 @@ class NavigationTest: BaseTestCase {
         waitForTabsButton()
         navigator.nowAt(NewTabScreen)
         navigator.goto(SettingsScreen)
-        waitForExistence(app.tables["AppSettingsTableViewController.tableView"])
+        waitForExistence(app.tables[AccessibilityIdentifiers.Settings.tableViewController])
         let switchBlockPopUps = app.tables.cells.switches["blockPopups"]
         switchBlockPopUps.tap()
         let switchValueAfter = switchBlockPopUps.value!
@@ -377,13 +364,12 @@ class NavigationTest: BaseTestCase {
         navigator.goto(BrowserTabMenu)
         waitForExistence(app.tables["Context Menu"])
 
-        XCTAssertTrue(app.tables.otherElements[ImageIdentifiers.bookmarks].exists)
-        XCTAssertTrue(app.tables.otherElements[ImageIdentifiers.history].exists)
-        XCTAssertTrue(app.tables.otherElements[ImageIdentifiers.downloads].exists)
+        XCTAssertTrue(app.tables.otherElements[StandardImageIdentifiers.Large.bookmarkTrayFill].exists)
+        XCTAssertTrue(app.tables.otherElements[StandardImageIdentifiers.Large.history].exists)
+        XCTAssertTrue(app.tables.otherElements[StandardImageIdentifiers.Large.download].exists)
         XCTAssertTrue(app.tables.otherElements[ImageIdentifiers.readingList].exists)
-        XCTAssertTrue(app.tables.otherElements[ImageIdentifiers.key].exists)
+        XCTAssertTrue(app.tables.otherElements[StandardImageIdentifiers.Large.login].exists)
         XCTAssertTrue(app.tables.otherElements[ImageIdentifiers.sync].exists)
-//        XCTAssertTrue(app.tables.otherElements[ImageIdentifiers.noImageMode].exists)
         XCTAssertTrue(app.tables.otherElements[ImageIdentifiers.nightMode].exists)
         XCTAssertTrue(app.tables.otherElements[ImageIdentifiers.whatsNew].exists)
         XCTAssertTrue(app.tables.otherElements[ImageIdentifiers.settings].exists)

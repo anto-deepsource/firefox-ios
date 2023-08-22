@@ -10,39 +10,44 @@ import Shared
 open class RustSyncManagerAPI {
     private let logger: Logger
     let api: SyncManagerComponent
-    public typealias MZSyncResult = MozillaAppServices.SyncResult
 
-    public init(logger: Logger = DefaultLogger.shared,
-                creditCardAutofillEnabled: Bool = false) {
+    // Names of collections that can be enabled/disabled locally.
+    public enum TogglableEngine: String, CaseIterable {
+        case tabs
+        case passwords
+        case bookmarks
+        case history
+        case creditcards
+    }
+
+    public var rustTogglableEngines: [TogglableEngine] = [.tabs, .passwords, .bookmarks, .history, .creditcards]
+    public init(logger: Logger = DefaultLogger.shared) {
         self.api = SyncManagerComponent()
         self.logger = logger
-
-        if creditCardAutofillEnabled {
-            RustSyncManagerAPI.rustTogglableEngines.append("creditcards")
-        }
     }
 
     public func disconnect() {
-        DispatchQueue.global(qos: .userInitiated).async { [unowned self] in
+        DispatchQueue.global().async { [unowned self] in
             self.api.disconnect()
         }
     }
 
     public func sync(params: SyncParams,
-                     completion: @escaping (MZSyncResult) -> Void) {
-        DispatchQueue.global(qos: .userInitiated).async { [unowned self] in
+                     completion: @escaping (SyncResult) -> Void) {
+        DispatchQueue.global().async { [weak self] in
             do {
-                let result = try self.api.sync(params: params)
+                guard let result = try self?.api.sync(params: params) else { return }
+
                 completion(result)
             } catch let err as NSError {
                 if let syncError = err as? SyncManagerError {
                     let syncErrDescription = syncError.localizedDescription
-                    self.logger.log("Rust SyncManager sync error: \(syncErrDescription)",
-                                    level: .warning,
-                                    category: .sync)
+                    self?.logger.log("Rust SyncManager sync error: \(syncErrDescription)",
+                                     level: .warning,
+                                     category: .sync)
                 } else {
                     let errDescription = err.localizedDescription
-                    self.logger.log("""
+                    self?.logger.log("""
                         Unknown error when attempting a rust SyncManager sync:
                         \(errDescription)
                         """,
@@ -53,9 +58,9 @@ open class RustSyncManagerAPI {
         }
     }
 
-    public func reportSyncTelemetry(syncResult: MZSyncResult,
+    public func reportSyncTelemetry(syncResult: SyncResult,
                                     completion: @escaping (String) -> Void) {
-        DispatchQueue.global(qos: .userInitiated).async { [unowned self] in
+        DispatchQueue.global().async { [unowned self] in
             do {
                 try SyncManagerComponent.reportSyncTelemetry(syncResult: syncResult)
             } catch let err as NSError {
@@ -72,32 +77,9 @@ open class RustSyncManagerAPI {
     }
 
     public func getAvailableEngines(completion: @escaping ([String]) -> Void) {
-        DispatchQueue.global(qos: .userInitiated).async { [unowned self] in
+        DispatchQueue.global().async { [unowned self] in
             let engines = self.api.getAvailableEngines()
             completion(engines)
         }
-    }
-
-    // Names of collections that can be enabled/disabled locally.
-    public static var rustTogglableEngines: [String] = [
-        "tabs",
-        "passwords",
-        "bookmarks",
-        "history",
-    ]
-}
-
-public func toRustSyncReason(reason: OldSyncReason) -> MozillaAppServices.SyncReason {
-    switch reason {
-    case .startup:
-        return MozillaAppServices.SyncReason.startup
-    case .scheduled:
-        return MozillaAppServices.SyncReason.scheduled
-    case .backgrounded:
-        return MozillaAppServices.SyncReason.backgrounded
-    case .push, .user, .syncNow:
-        return MozillaAppServices.SyncReason.user
-    case .didLogin, .clientNameChanged, .engineEnabled:
-        return MozillaAppServices.SyncReason.enabledChange
     }
 }

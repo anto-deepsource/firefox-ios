@@ -33,7 +33,7 @@ class TopTabsViewController: UIViewController, Themeable, Notifiable {
     let tabManager: TabManager
     weak var delegate: TopTabsDelegate?
     private var topTabDisplayManager: TabDisplayManager!
-    var tabCellIdentifier: TabDisplayer.TabCellIdentifier = TopTabCell.cellIdentifier
+    var tabCellIdentifier: TabDisplayerDelegate.TabCellIdentifier = TopTabCell.cellIdentifier
     var profile: Profile
     var themeManager: ThemeManager
     var themeObserver: NSObjectProtocol?
@@ -57,11 +57,10 @@ class TopTabsViewController: UIViewController, Themeable, Notifiable {
         button.semanticContentAttribute = .forceLeftToRight
         button.addTarget(self, action: #selector(TopTabsViewController.tabsTrayTapped), for: .touchUpInside)
         button.accessibilityIdentifier = AccessibilityIdentifiers.Toolbar.tabsButton
-        button.inTopTabs = true
     }
 
     private lazy var newTab: UIButton = .build { button in
-        button.setImage(UIImage.templateImageNamed(ImageIdentifiers.newTab), for: .normal)
+        button.setImage(UIImage.templateImageNamed(StandardImageIdentifiers.Large.plus), for: .normal)
         button.semanticContentAttribute = .forceLeftToRight
         button.addTarget(self, action: #selector(TopTabsViewController.newTabTapped), for: .touchUpInside)
         button.accessibilityIdentifier = AccessibilityIdentifiers.Toolbar.addNewTabButton
@@ -151,7 +150,7 @@ class TopTabsViewController: UIViewController, Themeable, Notifiable {
         newTab.addInteraction(dropInteraction)
 
         tabsButton.applyTheme(theme: themeManager.currentTheme)
-        applyUIMode(isPrivate: tabManager.selectedTab?.isPrivate ?? false)
+        applyUIMode(isPrivate: tabManager.selectedTab?.isPrivate ?? false, theme: themeManager.currentTheme)
 
         updateTabCount(topTabDisplayManager.dataStore.count, animated: false)
     }
@@ -286,7 +285,7 @@ class TopTabsViewController: UIViewController, Themeable, Notifiable {
     }
 }
 
-extension TopTabsViewController: TabDisplayer {
+extension TopTabsViewController: TabDisplayerDelegate {
     func focusSelectedTab() {
         self.scrollToCurrentTab(true)
         self.handleFadeOutAfterTabSelection()
@@ -314,11 +313,11 @@ extension TopTabsViewController: TopTabCellDelegate {
 }
 
 extension TopTabsViewController: PrivateModeUI {
-    func applyUIMode(isPrivate: Bool) {
+    func applyUIMode(isPrivate: Bool, theme: Theme) {
         topTabDisplayManager.togglePrivateMode(isOn: isPrivate, createTabOnEmptyPrivateMode: true)
 
-        privateModeButton.applyTheme(theme: themeManager.currentTheme)
-        privateModeButton.applyUIMode(isPrivate: topTabDisplayManager.isPrivate)
+        privateModeButton.applyTheme(theme: theme)
+        privateModeButton.applyUIMode(isPrivate: topTabDisplayManager.isPrivate, theme: theme)
     }
 }
 

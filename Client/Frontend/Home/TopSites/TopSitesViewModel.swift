@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Foundation
 import Shared
 import Storage
@@ -70,6 +71,15 @@ class TopSitesViewModel {
         // Origin extra
         let originExtra = TelemetryWrapper.getOriginExtras(isZeroSearch: isZeroSearch)
         let extras = originExtra.merge(with: topSiteExtra)
+
+        // Bookmarks from topSites
+        let isBookmarkedSite = profile.places.isBookmarked(url: homeTopSite.site.url).value.successValue ?? false
+        if isBookmarkedSite {
+            TelemetryWrapper.recordEvent(category: .action,
+                                         method: .open,
+                                         object: .bookmark,
+                                         value: .openBookmarksFromTopSites)
+        }
 
         TelemetryWrapper.recordEvent(category: .action,
                                      method: .tap,

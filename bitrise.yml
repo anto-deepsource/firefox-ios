@@ -136,7 +136,7 @@ workflows:
             Mana|https://mana.mozilla.org/wiki/display/MTE/Mobile+Test+Engineering
     - slack@3.1:
         is_always_run: true
-        run_if: '{{getenv "NEW_RC_VERSION" | eq "New_RC_Version"}}'
+        run_if: '{{getenv "NEW_RC_VERSION" | eq "New_RC_Version" | and .IsBuildFailed}}'
         inputs:
         - channel: "#firefox-ios"
         - text: Build status using latest Rust-Component
@@ -171,12 +171,12 @@ workflows:
             exec unzip "$derived_data"
     - xcode-test-without-building@0:
         run_if: '{{getenv "RUN_UI_TESTS" | eq "Run_UI_Tests"}}'
-        timeout: 900
+        timeout: 1200
         title: UI Smoketest2
         inputs:
         - destination: platform=iOS Simulator,name=iPhone 14 Plus,OS=16.4
         - xcodebuild_options: '"-derivedDataPath" "/Users/vagrant/git/DerivedData"
-            "-parallel-testing-enabled" "YES" "-parallel-testing-worker-count" "2"
+            "-parallel-testing-enabled" "NO" "-parallel-testing-worker-count" "2"
             "COMPILER_INDEX_STORE_ENABLE=NO" "CODE_SIGN_IDENTITY=" 
             "CODE_SIGNING_REQUIRED=NO" "CODE_SIGNING_ALLOWED=NO"'
         - xctestrun: "Users/vagrant/git/DerivedData/Build/Products/Fennec_Smoketest2_iphonesimulator16.4-x86_64.xctestrun"
@@ -217,12 +217,12 @@ workflows:
             ls
     - xcode-test-without-building@0:
         run_if: '{{getenv "RUN_UI_TESTS" | eq "Run_UI_Tests"}}'
-        timeout: 900
+        timeout: 1200
         title: UI Smoketest
         inputs:
         - destination: platform=iOS Simulator,name=iPhone 14 Plus,OS=16.4
         - xcodebuild_options: '"-derivedDataPath" "/Users/vagrant/git/DerivedData"
-            "-parallel-testing-enabled" "YES" "-parallel-testing-worker-count" "2"
+            "-parallel-testing-enabled" "NO" "-parallel-testing-worker-count" "2"
             "COMPILER_INDEX_STORE_ENABLE=NO" "CODE_SIGN_IDENTITY=" 
             "CODE_SIGNING_REQUIRED=NO" "CODE_SIGNING_ALLOWED=NO"'
         - xctestrun: "Users/vagrant/git/DerivedData/Build/Products/Fennec_SmokeXCUITests_iphonesimulator16.4-x86_64.xctestrun"
@@ -263,12 +263,12 @@ workflows:
             ls
     - xcode-test-without-building@0:
         run_if: '{{getenv "RUN_UI_TESTS" | eq "Run_UI_Tests"}}'
-        timeout: 900
+        timeout: 1200
         title: UI Smoketest3
         inputs:
         - destination: platform=iOS Simulator,name=iPhone 14 Plus,OS=16.4
         - xcodebuild_options: '"-derivedDataPath" "/Users/vagrant/git/DerivedData"
-            "-parallel-testing-enabled" "YES" "-parallel-testing-worker-count" "2"
+            "-parallel-testing-enabled" "NO" "-parallel-testing-worker-count" "2"
             "COMPILER_INDEX_STORE_ENABLE=NO" "CODE_SIGN_IDENTITY=" 
             "CODE_SIGNING_REQUIRED=NO" "CODE_SIGNING_ALLOWED=NO"'
         - xctestrun: "Users/vagrant/git/DerivedData/Build/Products/Fennec_Smoketest3_iphonesimulator16.4-x86_64.xctestrun"
@@ -309,12 +309,12 @@ workflows:
             ls
     - xcode-test-without-building@0:
         run_if: '{{getenv "RUN_UI_TESTS" | eq "Run_UI_Tests"}}'
-        timeout: 900
+        timeout: 1200
         title: UI Smoketest4
         inputs:
         - destination: platform=iOS Simulator,name=iPhone 14 Plus,OS=16.4
         - xcodebuild_options: '"-derivedDataPath" "/Users/vagrant/git/DerivedData"
-            "-parallel-testing-enabled" "YES" "-parallel-testing-worker-count" "2"
+            "-parallel-testing-enabled" "NO" "-parallel-testing-worker-count" "2"
             "COMPILER_INDEX_STORE_ENABLE=NO" "CODE_SIGN_IDENTITY=" 
             "CODE_SIGNING_REQUIRED=NO" "CODE_SIGNING_ALLOWED=NO"'
         - xctestrun: "Users/vagrant/git/DerivedData/Build/Products/Fennec_Smoketest4_iphonesimulator16.4-x86_64.xctestrun"
@@ -384,6 +384,16 @@ workflows:
   2_certificate_and_profile:
     steps:
     - certificate-and-profile-installer@1.10: {}
+    - script@1:
+        inputs:
+        - content: |-
+             #!/usr/bin/env bash
+             set -e
+             set -x
+             cd Client.xcodeproj
+             sed -i '' 's/CODE_SIGN_IDENTITY = "iPhone Developer"/CODE_SIGN_IDENTITY = "iPhone Developer"/' project.pbxproj
+             cd -
+        title: Set xcodeproj code_sign_identity to iPhone Developer
     - script@1:
         inputs:
         - content: |-
@@ -519,16 +529,16 @@ workflows:
             App|${BITRISE_APP_URL}
             #mobile-testeng|https://mozilla.slack.com/archives/C02KDDS9QM9
             Mana|https://mana.mozilla.org/wiki/display/MTE/Mobile+Test+Engineering
-  4_B_xcode_build_and_test_Fennec_Enterprise_XCUITests:
+  4_B_xcode_build_and_test_Fennec:
     steps:
     - xcode-build-for-simulator@0.12:
         inputs:
         - xcodebuild_options: CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
-        - scheme: Fennec_Enterprise_XCUITests
+        - scheme: Fennec
     - xcode-test@4.5:
         inputs:
-        - scheme: Fennec_Enterprise_XCUITests
-        - xcodebuild_test_options: "-testPlan Fennec_Enterprise_XCUITests"
+        - scheme: Fennec
+        - xcodebuild_test_options: "-testPlan FullFunctionalTestPlan"
         - simulator_device: "$IOS_DEVICE"
   Detect_warnings:
     steps:
@@ -565,9 +575,22 @@ workflows:
             #!/usr/bin/env bash
             set -ex
 
+            # We need to check both PRs and MERGEs for release and epic branches so an error isn't
+            # created when trying to find a diff on a commit that doesn't exist on origin/main
+            # First check destination branch for PRs and then check $BITRISE_GIT_BRANCH for
+            # merges to origin/main since the destination branch changes back to origin/main
+            if [[ $BITRISEIO_GIT_BRANCH_DEST = release* ]] || [[ $BITRISEIO_GIT_BRANCH_DEST = epic* ]]; then
+                FILES_CHANGED=$(git diff --name-only $BITRISEIO_GIT_BRANCH_DEST..."$BITRISE_GIT_COMMIT")
+            elif [[ $BITRISE_GIT_BRANCH = release* ]] || [[ $BITRISE_GIT_BRANCH = epic* ]]; then
+                echo "Skipping Blacklist check for Merging into $BITRISE_BIT_BRANCH..."
+                exit 0
+                FILES_CHANGED=$(git diff --name-only $BITRISE_GIT_BRANCH..."$BITRISE_GIT_COMMIT")
+            else
+                FILES_CHANGED=$(git diff --name-only origin/main..."$BITRISE_GIT_COMMIT")
+            fi
+
             # Manual triggers leave empty commits. 
             # Check for empty commit/PR and exit blacklist check if found to avoid erroring out.
-            FILES_CHANGED=$(git diff --name-only origin/main..."$BITRISE_GIT_COMMIT")
             echo "Files changed in commit/PR: $FILES_CHANGED"
             if [[ -z "$FILES_CHANGED" ]]; then
                 echo "No files changed in commit/PR. Skipping Blacklist check..."
@@ -737,7 +760,7 @@ workflows:
     - 1_git_clone_and_post_clone
     - 2_certificate_and_profile
     - 3_provisioning_and_npm_installation
-    - 4_B_xcode_build_and_test_Fennec_Enterprise_XCUITests
+    - 4_B_xcode_build_and_test_Fennec
     - 5_deploy_and_slack
     meta:
       bitrise.io:
@@ -748,32 +771,32 @@ workflows:
     - xcode-build-for-simulator@0.12:
         inputs:
         - xcodebuild_options: CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
-        - scheme: Fennec_Enterprise_XCUITests
+        - scheme: Fennec
     - xcode-test@4.5:
         is_always_run: true
         inputs:
-        - scheme: Fennec_Enterprise_XCUITests
+        - scheme: Fennec
         - test_plan: "SmokeXCUITests"
         - destination: platform=iOS Simulator,name=iPad Pro (12.9-inch) (5th generation),OS=16.4
         description: This Workflow is to run SmokeTest on iPad simulator device
     - xcode-test@4.5:
         is_always_run: true
         inputs:
-        - scheme: Fennec_Enterprise_XCUITests
+        - scheme: Fennec
         - test_plan: "Smoketest2"
         - destination: platform=iOS Simulator,name=iPad Pro (12.9-inch) (5th generation),OS=16.4
         description: This Workflow is to run SmokeTest on iPad simulator device Smoketest2
     - xcode-test@4.5:
         is_always_run: true
         inputs:
-        - scheme: Fennec_Enterprise_XCUITests
+        - scheme: Fennec
         - test_plan: "Smoketest3"
         - destination: platform=iOS Simulator,name=iPad Pro (12.9-inch) (5th generation),OS=16.4
         description: This Workflow is to run SmokeTest on iPad simulator device Smoketest3
     - xcode-test@4.5:
         is_always_run: true
         inputs:
-        - scheme: Fennec_Enterprise_XCUITests
+        - scheme: Fennec
         - test_plan: "Smoketest4"
         - destination: platform=iOS Simulator,name=iPad Pro (12.9-inch) (5th generation),OS=16.4
         description: This Workflow is to run SmokeTest on iPad simulator device Smoketest4
@@ -793,12 +816,12 @@ workflows:
         inputs:
         - configuration: Release
         - xcodebuild_options: CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO -testPlan SmokeXCUITests
-        - scheme: Fennec_Enterprise_XCUITests
+        - scheme: Fennec
         - xcodebuild_test_options: "-testPlan SmokeXCUITests"
     - xcode-test@4.5:
         inputs:
-        - scheme: Fennec_Enterprise_UITests
-        - simulator_device: iPhone 8
+        - scheme: Fennec
+        - simulator_device: iPhone 14
         is_always_run: true
     meta:
       bitrise.io:
@@ -1296,19 +1319,14 @@ workflows:
     steps:
     - cache-pull@2.1:
         is_always_run: true
-    - xcode-build-for-simulator@0.12:
-        inputs:
-        - test_plan: PerformanceTestPlan
-        - xcodebuild_options: CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
-        - scheme: Fennec_Enterprise_XCUITests
     - xcode-test@4.5:
         inputs:
-        - scheme: Fennec_Enterprise_XCUITests
-        - xcodebuild_test_options: "-testPlan PerformanceTestPlan"
-        - simulator_device: "iPhone 14"
-        - test_plan: PerformanceTestPlan
+        - scheme: Fennec
+        - destination: platform=iOS Simulator,name=iPhone 14,OS=16.4
+        - test_plan: PerformanceTestPlan   
     
     - script@1.1:
+        is_always_run: true
         title: Create perfherder data object
         inputs:
         - content: |-
@@ -1328,13 +1346,13 @@ workflows:
             echo "DerivedData/Client/Log/Tests"
             ls /Users/vagrant/Library/Developer/Xcode/DerivedData
             CLIENT_PATH=$(ls /Users/vagrant/Library/Developer/Xcode/DerivedData | grep 'Client-')
-            mv /Users/vagrant/Library/Developer/Xcode/DerivedData/$CLIENT_PATH/Logs/Test/Test-Fennec_Enterprise_XCUITests.xcresult /Users/vagrant/Library/Developer/Xcode/DerivedData/$CLIENT_PATH/Logs/Test/Test-Fennec_Enterprise_XCUITests-test.xcresult
+            mv /Users/vagrant/Library/Developer/Xcode/DerivedData/$CLIENT_PATH/Logs/Test/Test-Fennec.xcresult /Users/vagrant/Library/Developer/Xcode/DerivedData/$CLIENT_PATH/Logs/Test/Test-Fennec-test.xcresult
 
             ls /Users/vagrant/Library/Developer/Xcode/DerivedData/$CLIENT_PATH/Logs/Test
 
             xcrun xcresulttool graph --path $BITRISE_XCRESULT_PATH
             ls ..
-            python3 xcresult_extract/xcresult_extract.py -project ../Client.xcodeproj -scheme Fennec_Enterprise_XCUITests
+            python3 xcresult_extract/xcresult_extract.py -project ../Client.xcodeproj -scheme Fennec
             cat data.txt
             sed 's/.*=//;s/'\''/"/g' data.txt > test.json
             cat test.json
@@ -1348,6 +1366,193 @@ workflows:
     - 1_git_clone_and_post_clone
     - 2_certificate_and_profile
     - 3_provisioning_and_npm_installation
+  Archive_and_Run_Robo_Test:
+    before_run:
+    - 1_git_clone_and_post_clone
+    - 2_certificate_and_profile
+    - 3_provisioning_and_npm_installation
+    steps:
+    - xcode-archive@4.7.2:
+        inputs:
+        - compile_bitcode: 'no'
+        - upload_bitcode: 'no'
+        - team_id: 9G8J6YA743
+        - export_method: development
+        - distribution_method: development
+        - export_development_team: 9G8J6YA743
+        - output_tool: xcodebuild
+        - scheme: Fennec_Enterprise
+        - configuration: Fennec_Enterprise
+        - project_path: "$BITRISE_PROJECT_PATH"
+    - deploy-to-bitrise-io@2: {}
+    - cache-pull@2.7.2:
+        inputs:
+        - cache_paths: "$HOME/google-cloud-sdk"
+    - script@1:
+        title: Install Google Cloud SDK
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+             
+            if [ -e $HOME/google-cloud-sdk ]; then
+              echo "Google Cloud SDK found, skipping installation..."
+            else
+              echo "Google Cloud SDK not found, installing..."
+              curl https://sdk.cloud.google.com > install.sh
+              bash install.sh --disable-prompts
+              source $HOME/google-cloud-sdk/path.bash.inc
+              gcloud components install beta
+            fi
+    - cache-push@2.7.1:
+        inputs:
+        - cache_paths: "$HOME/google-cloud-sdk"
+        - ignore_check_on_paths: "!/Users/vagrant/Library/Developer/Xcode/DerivedData/**"
+        - compress_archive: "true"
+    - script@1:
+        title: Firebase Test Lab Execution
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e 
+            curl -o /tmp/key-file.json $BITRISEIO_GOOGLE_APPLICATION_CREDENTIALS_URL 
+            $HOME/google-cloud-sdk/bin/gcloud version
+            $HOME/google-cloud-sdk/bin/gcloud auth activate-service-account -q --key-file /tmp/key-file.json
+            $HOME/google-cloud-sdk/bin/gcloud config set project "$GOOGLE_CLOUD_PROJECT"
+            GCLOUD_OUTPUT=$($HOME/google-cloud-sdk/bin/gcloud beta firebase test ios run \
+                --type robo \
+                --app "$BITRISE_IPA_PATH" \
+                --device=model=iphone13pro,version=15.7 \
+                --device=model=iphone8,version=16.5 \
+                --results-bucket=firefox_ios_test_artifacts \
+                --no-record-video \
+                --client-details=matrixLabel="Bitrise" \
+                2>&1 | tee /dev/stdout)
+            envman add --key GCLOUD_EXIT_CODE --value ${PIPESTATUS[0]}
+            MATRIX_WEBLINK=$(echo "$GCLOUD_OUTPUT" | grep 'https://console.firebase.google.com/project' | awk -F '[][]' '{print $2}' | head -n 1)
+            envman add --key MATRIX_WEBLINK --value "$MATRIX_WEBLINK"
+    - script@1:
+        title: Modify Slack Message Based on GCLOUD_EXIT_CODE
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            if [ "${GCLOUD_EXIT_CODE}" -ne 0 ]; then
+                SLACK_MESSAGE_PRETEXT="*Firefox-iOS* :firefox: *Archive/Robo Test* :x:"
+            else 
+                SLACK_MESSAGE_PRETEXT="*Firefox-iOS* :firefox: *Archive/Robo Test* :white_check_mark:"
+            fi
+            envman add --key SLACK_MESSAGE_PRETEXT --value "$SLACK_MESSAGE_PRETEXT"
+    - slack@3.5.0:
+        is_always_run: true
+        inputs:
+        - title: ''
+        - author_name: ''
+        - webhook_url: "$WEBHOOK_SLACK_TOKEN"
+        - footer_icon: https://emoji.slack-edge.com/T027LFU12/testops-notify/d350cecb43e9e630.png
+        - footer: Created by Mobile Test Engineering
+        - pretext_on_error: "${SLACK_MESSAGE_PRETEXT}"
+        - pretext: "${SLACK_MESSAGE_PRETEXT}"
+        - timestamp: 'no'
+        - fields: |
+            Task | ${BITRISE_BUILD_URL}
+            Commit | ${GIT_CLONE_COMMIT_MESSAGE_SUBJECT}
+            Source-Workflow | ${BITRISE_TRIGGERED_WORKFLOW_TITLE}
+            Branch | ${BITRISE_GIT_BRANCH}
+            Result | ${MATRIX_WEBLINK}
+        - buttons: |
+            App|${BITRISE_APP_URL}
+            #mobile-testeng|https://mozilla.slack.com/archives/C02KDDS9QM9
+            Mana|https://mana.mozilla.org/wiki/display/MTE/Mobile+Test+Engineering
+  Firebase_Performance_Test:
+    before_run:
+    - 1_git_clone_and_post_clone
+    - 2_certificate_and_profile
+    - 3_provisioning_and_npm_installation
+    steps:
+    - xcode-archive@4.7.2:
+        inputs:
+        - compile_bitcode: 'no'
+        - upload_bitcode: 'no'
+        - team_id: 9G8J6YA743
+        - export_method: development
+        - distribution_method: development
+        - export_development_team: 9G8J6YA743
+        - output_tool: xcodebuild
+        - scheme: Fennec_Enterprise
+        - configuration: Fennec_Enterprise
+        - project_path: "$BITRISE_PROJECT_PATH"
+    - deploy-to-bitrise-io@2: {}
+    - script@1.1:
+        title: Firebase Build for Testing Physical Devices
+        inputs:
+        - content: |
+            set -euxo pipefail
+            echo "-- build-for-testing --"
+            mkdir DerivedData
+            xcodebuild -resolvePackageDependencies -onlyUsePackageVersionsFromResolvedFile
+            xcodebuild build-for-testing -project /Users/vagrant/git/Client.xcodeproj \
+                -sdk iphoneos \
+                -destination "generic/platform=iOS" \
+                -derivedDataPath "/Users/vagrant/git/DerivedData" | xcpretty | tee xcodebuild_fennec.log
+    - deploy-to-bitrise-io@2: {}
+    - script@1.1:
+        title: Verify App signature, Test, and Runner
+        inputs:
+        - content: |
+            set -euxo pipefail
+            echo "-- verify test and runner signature --"
+            codesign --verify --deep --strict --verbose DerivedData/Build/Products/Debug-iphoneos/Client.app
+            echo "-- test app --"
+            xcodebuild -project /Users/vagrant/git/Client.xcodeproj \
+                -sdk iphoneos \
+                -derivedDataPath "/Users/vagrant/git/DerivedData" test-without-building | xcpretty | tee xcodebuild_fennec.log
+    - script@1.1:
+        title: Create .zip artifact for Firebase Testing
+        inputs:
+        - content: |
+            set -euxo pipefail
+            echo "-- create .zip artifact --"
+            cd DerivedData/Build/Products
+            zip -r Fennec_Enterprise.zip Debug-iphones Fennec_Enterprise_PerformanceTestPlan_iphoneos16.4-arm64.xctestrun
+            mv Fennec_Enterprise.zip /Users/vagrant/git/Fennec_Enterprise.zip
+    - deploy-to-bitrise-io@2: {}
+    - cache-pull@2.7.2:
+        inputs:
+        - cache_paths: "$HOME/google-cloud-sdk"
+    - script@1:
+        title: Install Google Cloud SDK
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+             
+            if [ -e $HOME/google-cloud-sdk ]; then
+              echo "Google Cloud SDK found, skipping installation..."
+            else
+              echo "Google Cloud SDK not found, installing..."
+              curl https://sdk.cloud.google.com > install.sh
+              bash install.sh --disable-prompts
+              source $HOME/google-cloud-sdk/path.bash.inc
+            fi
+    - cache-push@2.7.1:
+        inputs:
+        - cache_paths: "$HOME/google-cloud-sdk"
+        - ignore_check_on_paths: "!/Users/vagrant/Library/Developer/Xcode/DerivedData/**"
+        - compress_archive: "true"
+    - script@1:
+        title: Run Performance Tests in Firebase Test Lab
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e 
+            curl -o /tmp/key-file.json $BITRISEIO_GOOGLE_APPLICATION_CREDENTIALS_URL 
+            $HOME/google-cloud-sdk/bin/gcloud version
+            $HOME/google-cloud-sdk/bin/gcloud auth activate-service-account -q --key-file /tmp/key-file.json
+            $HOME/google-cloud-sdk/bin/gcloud config set project "$GOOGLE_CLOUD_PROJECT"
+            ls /Users/vagrant/git/Fennec_Enterprise.zip
+            gcloud firebase test ios run --test /Users/vagrant/git/Fennec_Enterprise.zip \
+                --model=iphone14pro,version=16.4 \
+                --xcode-version=14.3.1
 app:
   envs:
   - opts:
@@ -1361,10 +1566,10 @@ app:
     BITRISE_NIGHTLY_VERSION: '9000'
   - opts:
       is_expand: false
-    BITRISE_RELEASE_VERSION: '115.0'
+    BITRISE_RELEASE_VERSION: '118.0'
   - opts:
       is_expand: false
-    BITRISE_BETA_VERSION: '115.0'
+    BITRISE_BETA_VERSION: '118.0'
 
 meta:
   bitrise.io:
@@ -1376,7 +1581,7 @@ trigger_map:
   pipeline: pipeline_multiple_shards
 - push_branch: epic-branch/*
   pipeline: pipeline_multiple_shards
-- push_branch: release/v115
+- push_branch: release/v118
   pipeline: pipeline_multiple_shards
 - pull_request_target_branch: main
   pipeline: pipeline_multiple_shards

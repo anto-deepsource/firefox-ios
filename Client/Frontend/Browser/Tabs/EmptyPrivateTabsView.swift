@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import UIKit
 import Foundation
 import Shared
@@ -29,8 +30,8 @@ class EmptyPrivateTabsView: UIView {
 
     private let titleLabel: UILabel = .build { label in
         label.adjustsFontForContentSizeCategory = true
-        label.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .title2,
-                                                                   size: UX.titleSizeFont)
+        label.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .title2,
+                                                            size: UX.titleSizeFont)
         label.numberOfLines = 0
         label.text =  .PrivateBrowsingTitle
         label.textAlignment = .center
@@ -38,8 +39,8 @@ class EmptyPrivateTabsView: UIView {
 
     private let descriptionLabel: UILabel = .build { label in
         label.adjustsFontForContentSizeCategory = true
-        label.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .body,
-                                                                   size: UX.descriptionSizeFont)
+        label.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .body,
+                                                            size: UX.descriptionSizeFont)
         label.textAlignment = .center
         label.numberOfLines = 0
         label.text = .TabTrayPrivateBrowsingDescription
@@ -47,8 +48,8 @@ class EmptyPrivateTabsView: UIView {
 
     let learnMoreButton: UIButton = .build { button in
         button.setTitle( .PrivateBrowsingLearnMore, for: [])
-        button.titleLabel?.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .subheadline,
-                                                                                size: UX.buttonSizeFont)
+        button.titleLabel?.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .subheadline,
+                                                                         size: UX.buttonSizeFont)
     }
 
     private let iconImageView: UIImageView = .build { imageView in

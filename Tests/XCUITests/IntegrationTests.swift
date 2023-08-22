@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import XCTest
 
 private let testingURL = "example.com"
@@ -16,7 +17,7 @@ class IntegrationTests: BaseTestCase {
     let testFxAChinaServer = ["testFxASyncPageUsingChinaFxA"]
 
     // This DB contains 1 entry example.com
-    let historyDB = "exampleURLHistoryBookmark.db"
+    let historyDB = "exampleURLHistoryBookmark-places.db"
 
     override func setUp() {
      // Test name looks like: "[Class testFunc]", parse out the function name
@@ -63,17 +64,21 @@ class IntegrationTests: BaseTestCase {
         navigator.performAction(Action.FxATypePassword)
         navigator.performAction(Action.FxATapOnSignInButton)
         sleep(3)
+        waitForTabsButton()
         allowNotifications()
     }
 
     private func waitForInitialSyncComplete() {
         navigator.nowAt(BrowserTab)
         navigator.goto(SettingsScreen)
-        waitForExistence(app.staticTexts["FIREFOX ACCOUNT"], timeout: TIMEOUT)
+        waitForExistence(app.staticTexts["FIREFOX ACCOUNT"], timeout: TIMEOUT_LONG)
         waitForNoExistence(app.staticTexts["Sync and Save Data"])
-        waitForExistence(app.tables.staticTexts["Syncing…"], timeout: TIMEOUT_LONG)
+        sleep(5)
+        if app.tables.staticTexts["Sync Now"].exists {
+            app.tables.staticTexts["Sync Now"].tap()
+        }
+        waitForNoExistence(app.tables.staticTexts["Syncing…"])
         waitForExistence(app.tables.staticTexts["Sync Now"], timeout: TIMEOUT_LONG)
-        sleep(3)
     }
 
     func testFxASyncHistory () {
@@ -105,8 +110,8 @@ class IntegrationTests: BaseTestCase {
         navigator.openURL("example.com")
         waitForExistence(app.buttons[AccessibilityIdentifiers.Toolbar.trackingProtection], timeout: 5)
         navigator.goto(BrowserTabMenu)
-        waitForExistence(app.tables.otherElements[ImageIdentifiers.addToBookmark], timeout: 15)
-        app.tables.otherElements[ImageIdentifiers.addToBookmark].tap()
+        waitForExistence(app.tables.otherElements[StandardImageIdentifiers.Large.bookmark], timeout: 15)
+        app.tables.otherElements[StandardImageIdentifiers.Large.bookmark].tap()
         navigator.nowAt(BrowserTab)
         signInFxAccounts()
 
@@ -280,6 +285,8 @@ class IntegrationTests: BaseTestCase {
         app.webViews.buttons.element(boundBy: 0).tap()
 
         navigator.nowAt(SettingsScreen)
+        waitForExistence(app.staticTexts["GENERAL"])
+        app.swipeDown()
         waitForExistence(app.staticTexts["FIREFOX ACCOUNT"], timeout: TIMEOUT)
         waitForExistence(app.tables.staticTexts["Sync Now"], timeout: 35)
 

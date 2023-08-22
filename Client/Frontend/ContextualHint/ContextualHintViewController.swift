@@ -2,10 +2,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
+import ComponentLibrary
 import Foundation
 import UIKit
 import Shared
-import Common
 
 class ContextualHintViewController: UIViewController, OnViewDismissable, Themeable {
     struct UX {
@@ -25,7 +26,7 @@ class ContextualHintViewController: UIViewController, OnViewDismissable, Themeab
     }
 
     private lazy var closeButton: UIButton = .build { [weak self] button in
-        button.setImage(UIImage(named: ImageIdentifiers.contextualHintClose)?.withRenderingMode(.alwaysTemplate),
+        button.setImage(UIImage(named: StandardImageIdentifiers.Medium.cross)?.withRenderingMode(.alwaysTemplate),
                         for: .normal)
         button.addTarget(self,
                          action: #selector(self?.dismissAnimated),
@@ -38,7 +39,7 @@ class ContextualHintViewController: UIViewController, OnViewDismissable, Themeab
     }
 
     private lazy var descriptionLabel: UILabel = .build { [weak self] label in
-        label.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .body, size: 17)
+        label.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .body, size: 17)
         label.textAlignment = .left
         label.numberOfLines = 0
     }
@@ -311,14 +312,14 @@ class ContextualHintViewController: UIViewController, OnViewDismissable, Themeab
 
     func applyTheme() {
         let theme = themeManager.currentTheme
-        closeButton.tintColor = theme.colors.textOnColor
-        descriptionLabel.textColor = theme.colors.textOnColor
+        closeButton.tintColor = theme.colors.textOnDark
+        descriptionLabel.textColor = theme.colors.textOnDark
         gradient.colors = theme.colors.layerGradient.cgColors
 
         if viewModel.isActionType() {
             let textAttributes: [NSAttributedString.Key: Any] = [
-                .font: DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .body, size: 17),
-                .foregroundColor: theme.colors.textOnColor,
+                .font: DefaultDynamicFontHelper.preferredFont(withTextStyle: .body, size: 17),
+                .foregroundColor: theme.colors.textOnDark,
                 .underlineStyle: NSUnderlineStyle.single.rawValue
             ]
 

@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Foundation
 import Shared
 
@@ -11,6 +12,7 @@ class RemoteTabsErrorDataSource: NSObject, RemoteTabsPanelDataSource, ThemeAppli
         case noClients
         case noTabs
         case failedToSync
+        case syncDisabledByUser
 
         func localizedString() -> String {
             switch self {
@@ -18,6 +20,7 @@ class RemoteTabsErrorDataSource: NSObject, RemoteTabsPanelDataSource, ThemeAppli
             case .noClients: return .EmptySyncedTabsPanelNullStateDescription
             case .noTabs: return .RemoteTabErrorNoTabs
             case .failedToSync: return .RemoteTabErrorFailedToSync
+            case .syncDisabledByUser: return .TabsTray.Sync.SyncTabsDisabled
             }
         }
     }

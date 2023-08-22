@@ -15,28 +15,12 @@ features:
             "recent-explorations": true,
             "pocket": true
           }
-      sponsored-tiles:
-        description: >
-          This property defines the sponsored tile feature on the
-          homepage, which is not a section therein.
-        type: SponsoredTiles
-        default:
-          {
-            "status": true,
-            "max-number-of-tiles": 2
-          }
       pocket-sponsored-stories:
         description: >
           This property defines whether pocket sponsored
           stories appear on the homepage.
         type: Boolean
         default: false
-      jump-back-in-synced-tab:
-        description: >
-          This property defines whether the synced tab card
-          appears on the homepage in the jump back in section.
-        type: Boolean
-        default: true
     defaults:
       - channel: developer
         value: {
@@ -47,15 +31,7 @@ features:
             "recent-explorations": true,
             "pocket": true
           },
-          "sponsored-tiles": {
-            "status": true,
-            "max-number-of-tiles": 2
-          },
-          "wallpaper-feature": {
-            "status": true
-          },
-          "pocket-sponsored-stories": true,
-          "jump-back-in-synced-tab": true
+          "pocket-sponsored-stories": true
         }
       - channel: beta
         value: {
@@ -66,29 +42,8 @@ features:
             "recent-explorations": true,
             "pocket": true
           },
-          "sponsored-tiles": {
-            "status": true,
-            "max-number-of-tiles": 1
-          },
-          "wallpaper-feature": {
-            "status": true
-          },
-          "pocket-sponsored-stories": false,
-          "jump-back-in-synced-tab": true
+          "pocket-sponsored-stories": false
         }
-
-objects:
-  SponsoredTiles:
-    description: "The configuration for the sponsored tile on the homescreen"
-    fields:
-      status:
-        type: Boolean
-        description: Whether or not the feature is enabled
-        default: false
-      max-number-of-tiles:
-        type: Int
-        description: The maximum number of sponsored tiles a user can see
-        default: 2
 
 enums:
   HomeScreenSection:

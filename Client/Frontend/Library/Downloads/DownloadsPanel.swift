@@ -19,6 +19,7 @@ class DownloadsPanel: UIViewController,
     }
 
     weak var libraryPanelDelegate: LibraryPanelDelegate?
+    weak var navigationHandler: DownloadsNavigationHandler?
     var state: LibraryPanelMainState
     var bottomToolbarItems: [UIBarButtonItem] = [UIBarButtonItem]()
     var themeManager: ThemeManager
@@ -32,10 +33,7 @@ class DownloadsPanel: UIViewController,
 
     private lazy var emptyStateOverlayView: UIView = self.createEmptyStateOverlayView()
 
-    lazy var tableView: UITableView = .build { [weak self] tableView in
-        guard let self = self else { return }
-        tableView.delegate = self
-        tableView.dataSource = self
+    private lazy var tableView: UITableView = .build { tableView in
         tableView.register(TwoLineImageOverlayCell.self,
                            forCellReuseIdentifier: TwoLineImageOverlayCell.cellIdentifier)
         tableView.register(SiteTableViewHeader.self,
@@ -74,6 +72,9 @@ class DownloadsPanel: UIViewController,
 
     override func viewDidLoad() {
         super.viewDidLoad()
+
+        tableView.delegate = self
+        tableView.dataSource = self
 
         view.addSubview(tableView)
 
@@ -223,15 +224,16 @@ class DownloadsPanel: UIViewController,
             view.translatesAutoresizingMaskIntoConstraints = false
         }
         let logoImageView: UIImageView = .build { imageView in
-            imageView.image = UIImage.templateImageNamed("emptyDownloads")?.withRenderingMode(.alwaysTemplate)
+            imageView.image = UIImage.templateImageNamed(StandardImageIdentifiers.Large.download)?
+                .withRenderingMode(.alwaysTemplate)
             imageView.tintColor = self.themeManager.currentTheme.colors.iconSecondary
         }
         let welcomeLabel: UILabel = .build { label in
             label.text = .DownloadsPanelEmptyStateTitle
             label.textAlignment = .center
-            label.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .body,
-                                                                       size: 17,
-                                                                       weight: .light)
+            label.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .body,
+                                                                size: 17,
+                                                                weight: .light)
             label.textColor = self.themeManager.currentTheme.colors.textSecondary
             label.numberOfLines = 0
             label.adjustsFontSizeToFitWidth = true
@@ -309,19 +311,27 @@ class DownloadsPanel: UIViewController,
 
         if let downloadedFile = viewModel.downloadedFileForIndexPath(indexPath) {
             TelemetryWrapper.recordEvent(category: .action, method: .tap, object: .download, value: .downloadsPanel)
-
             if downloadedFile.mimeType == MIMEType.Calendar {
-                let docController = UIDocumentInteractionController(url: downloadedFile.path)
-                docController.delegate = self
-                docController.presentPreview(animated: true)
+                if CoordinatorFlagManager.isLibraryCoordinatorEnabled {
+                    navigationHandler?.showDocument(file: downloadedFile)
+                } else {
+                    let docController = UIDocumentInteractionController(url: downloadedFile.path)
+                    docController.delegate = self
+                    docController.presentPreview(animated: true)
+                }
                 return
             }
 
-            guard downloadedFile.canShowInWebView else {
-                shareDownloadedFile(downloadedFile, indexPath: indexPath)
-                return
+            if CoordinatorFlagManager.isLibraryCoordinatorEnabled {
+                let cell = tableView.cellForRow(at: indexPath)
+                navigationHandler?.handleFile(downloadedFile, sourceView: cell ?? UIView())
+            } else {
+                guard downloadedFile.canShowInWebView else {
+                    shareDownloadedFile(downloadedFile, indexPath: indexPath)
+                    return
+                }
+                libraryPanelDelegate?.libraryPanel(didSelectURL: downloadedFile.path, visitType: VisitType.typed)
             }
-            libraryPanelDelegate?.libraryPanel(didSelectURL: downloadedFile.path, visitType: VisitType.typed)
         }
     }
 

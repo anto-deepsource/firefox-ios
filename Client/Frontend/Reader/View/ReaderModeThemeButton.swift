@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import UIKit
 import Shared
 
@@ -13,10 +14,10 @@ class ReaderModeThemeButton: UIButton {
             switch fontType {
             case .sansSerif,
                  .sansSerifBold:
-                titleLabel?.font = UIFont(name: "SF-Pro", size: DynamicFontHelper.defaultHelper.ReaderStandardFontSize)
+                titleLabel?.font = UIFont(name: "SF-Pro", size: LegacyDynamicFontHelper.defaultHelper.ReaderStandardFontSize)
             case .serif,
                  .serifBold:
-                titleLabel?.font = UIFont(name: "NewYorkMedium-Regular", size: DynamicFontHelper.defaultHelper.ReaderStandardFontSize)
+                titleLabel?.font = UIFont(name: "NewYorkMedium-Regular", size: LegacyDynamicFontHelper.defaultHelper.ReaderStandardFontSize)
             }
         }
     }

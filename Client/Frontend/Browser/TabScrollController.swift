@@ -5,12 +5,8 @@
 import UIKit
 import SnapKit
 
-protocol TabScrollingControllerDelegate: AnyObject {
-    func didSetAlpha(_ alpha: Float, duration: TimeInterval)
-}
-
 private let ToolbarBaseAnimationDuration: CGFloat = 0.2
-class TabScrollingController: NSObject, FeatureFlaggable {
+class TabScrollingController: NSObject, FeatureFlaggable, SearchBarLocationProvider {
     enum ScrollDirection {
         case up
         case down
@@ -32,14 +28,15 @@ class TabScrollingController: NSObject, FeatureFlaggable {
             self.scrollView?.addGestureRecognizer(panGesture)
             scrollView?.delegate = self
             scrollView?.keyboardDismissMode = .onDrag
-            featureFlags.isFeatureEnabled(.pullToRefresh, checking: .buildOnly) ? configureRefreshControl() : nil
+            configureRefreshControl(isEnabled: true)
         }
     }
 
     weak var header: BaseAlphaStackView?
     weak var overKeyboardContainer: BaseAlphaStackView?
     weak var bottomContainer: BaseAlphaStackView?
-    weak var delegate: TabScrollingControllerDelegate?
+
+    weak var zoomPageBar: ZoomPageBar?
 
     var overKeyboardContainerConstraint: Constraint?
     var bottomContainerConstraint: Constraint?
@@ -191,8 +188,6 @@ class TabScrollingController: NSObject, FeatureFlaggable {
     }
 }
 
-extension TabScrollingController: SearchBarLocationProvider {}
-
 // MARK: - Private
 private extension TabScrollingController {
     func hideToolbars(animated: Bool) {
@@ -210,8 +205,12 @@ private extension TabScrollingController {
             completion: nil)
     }
 
-    func configureRefreshControl() {
-        scrollView?.refreshControl = UIRefreshControl()
+    func configureRefreshControl(isEnabled: Bool) {
+        let pullToRefreshEnabled = featureFlags.isFeatureEnabled(.pullToRefresh, checking: .buildOnly)
+
+        scrollView?.refreshControl = pullToRefreshEnabled ?
+        (isEnabled ? UIRefreshControl() : nil) : nil
+
         scrollView?.refreshControl?.addTarget(self, action: #selector(reload), for: .valueChanged)
     }
 
@@ -283,6 +282,7 @@ private extension TabScrollingController {
         overKeyboardContainerOffset = clamp(overKeyboardUpdatedOffset, min: 0, max: overKeyboardScrollHeight)
 
         header?.updateAlphaForSubviews(scrollAlpha)
+        zoomPageBar?.updateAlphaForSubviews(scrollAlpha)
     }
 
     func isHeaderDisplayedForGivenOffset(_ offset: CGFloat) -> Bool {
@@ -322,7 +322,8 @@ private extension TabScrollingController {
             self.overKeyboardContainerOffset = overKeyboardOffset
             self.header?.updateAlphaForSubviews(alpha)
             self.header?.superview?.layoutIfNeeded()
-            self.delegate?.didSetAlpha(Float(alpha), duration: duration)
+            self.zoomPageBar?.updateAlphaForSubviews(alpha)
+            self.zoomPageBar?.superview?.layoutIfNeeded()
         }
 
         if animated {
@@ -361,7 +362,12 @@ private extension TabScrollingController {
 
     // Scroll alpha is only for header views since status bar has an overlay
     // Bottom content doesn't have alpha since it's completely hidden
+    // Besides the zoom bar, to hide the gradient
     var scrollAlpha: CGFloat {
+        if zoomPageBar != nil,
+           isBottomSearchBar {
+            return 1 - abs(overKeyboardContainerOffset / overKeyboardScrollHeight)
+        }
         return 1 - abs(headerTopOffset / topScrollHeight)
     }
 }
@@ -404,10 +410,12 @@ extension TabScrollingController: UIScrollViewDelegate {
     }
 
     func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) {
+        configureRefreshControl(isEnabled: false)
         self.isUserZoom = true
     }
 
     func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
+        configureRefreshControl(isEnabled: true)
         self.isUserZoom = false
     }
 

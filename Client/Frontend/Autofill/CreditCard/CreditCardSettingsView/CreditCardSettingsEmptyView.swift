@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Foundation
 import SwiftUI
 import Shared
@@ -13,6 +14,7 @@ struct CreditCardSettingsEmptyView: View {
     @State var titleTextColor: Color = .clear
     @State var subTextColor: Color = .clear
     @State var toggleTextColor: Color = .clear
+    @State var imageColor: Color = .clear
 
     @ObservedObject var toggleModel: ToggleModel
 
@@ -29,8 +31,10 @@ struct CreditCardSettingsEmptyView: View {
                         .background(Color.white)
                         .padding(.top, 25)
                         Spacer()
-                        Image(ImageIdentifiers.creditCardPlaceholder)
+                        Image(StandardImageIdentifiers.Large.creditCard)
                             .resizable()
+                            .renderingMode(.template)
+                            .foregroundColor(imageColor)
                             .frame(width: 200, height: 200)
                             .aspectRatio(contentMode: .fit)
                             .fixedSize()
@@ -70,6 +74,7 @@ struct CreditCardSettingsEmptyView: View {
         titleTextColor = Color(color.textPrimary)
         subTextColor = Color(color.textSecondary)
         toggleTextColor = Color(color.textPrimary)
+        imageColor = Color(color.iconSecondary)
     }
 }
 

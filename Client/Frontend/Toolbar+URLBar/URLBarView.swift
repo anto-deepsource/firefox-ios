@@ -21,6 +21,7 @@ private struct URLBarViewUX {
     static let TabsButtonRotationOffset: CGFloat = 1.5
     static let TabsButtonHeight: CGFloat = 18.0
     static let ToolbarButtonInsets = UIEdgeInsets(equalInset: Padding)
+    static let urlBarLineHeight = 0.5
 }
 
 protocol URLBarDelegate: AnyObject {
@@ -45,6 +46,7 @@ protocol URLBarDelegate: AnyObject {
     func urlBarDisplayTextForURL(_ url: URL?) -> (String?, Bool)
     func urlBarDidBeginDragInteraction(_ urlBar: URLBarView)
     func urlBarDidPressShare(_ urlBar: URLBarView, shareView: UIView)
+    func urlBarDidPressShoppingCart(_ urlBar: URLBarView, shoppingCart: UIButton)
 }
 
 protocol URLBarViewProtocol {
@@ -59,7 +61,8 @@ extension URLBarViewProtocol {
     }
 }
 
-class URLBarView: UIView, URLBarViewProtocol, AlphaDimmable, TopBottomInterchangeable, SearchEngineDelegate {
+class URLBarView: UIView, URLBarViewProtocol, AlphaDimmable, TopBottomInterchangeable,
+                    SearchEngineDelegate, SearchBarLocationProvider {
     // Additional UIAppearance-configurable properties
     @objc lazy dynamic var locationBorderColor: UIColor = .clear {
         didSet {
@@ -117,12 +120,12 @@ class URLBarView: UIView, URLBarViewProtocol, AlphaDimmable, TopBottomInterchang
         return locationContainer
     }()
 
-    let line = UIView()
+    private let line = UIView()
 
     lazy var tabsButton: TabsButton = {
-        let tabsButton = TabsButton.tabTrayButton()
+        let tabsButton = TabsButton()
+        tabsButton.accessibilityLabel = .TabTrayButtonShowTabsAccessibilityLabel
         tabsButton.accessibilityIdentifier = AccessibilityIdentifiers.Toolbar.tabsButton
-        tabsButton.inTopTabs = false
         return tabsButton
     }()
 
@@ -135,7 +138,7 @@ class URLBarView: UIView, URLBarViewProtocol, AlphaDimmable, TopBottomInterchang
     fileprivate lazy var cancelButton: UIButton = {
         let cancelButton = InsetButton()
         cancelButton.setImage(
-            UIImage.templateImageNamed(ImageIdentifiers.menuGoBack)?.imageFlippedForRightToLeftLayoutDirection(),
+            UIImage.templateImageNamed(StandardImageIdentifiers.Large.chevronLeft)?.imageFlippedForRightToLeftLayoutDirection(),
             for: .normal)
         cancelButton.accessibilityIdentifier = AccessibilityIdentifiers.Browser.UrlBar.cancelButton
         cancelButton.accessibilityLabel = AccessibilityIdentifiers.GeneralizedIdentifiers.back
@@ -146,7 +149,7 @@ class URLBarView: UIView, URLBarViewProtocol, AlphaDimmable, TopBottomInterchang
 
     fileprivate lazy var showQRScannerButton: InsetButton = {
         let button = InsetButton()
-        button.setImage(UIImage.templateImageNamed(ImageIdentifiers.menuScanQRCode), for: .normal)
+        button.setImage(UIImage.templateImageNamed(StandardImageIdentifiers.Large.qrCode), for: .normal)
         button.accessibilityIdentifier = AccessibilityIdentifiers.Browser.UrlBar.scanQRCodeButton
         button.accessibilityLabel = .ScanQRCodeViewTitle
         button.clipsToBounds = false
@@ -204,26 +207,18 @@ class URLBarView: UIView, URLBarViewProtocol, AlphaDimmable, TopBottomInterchang
 
         set(newURL) {
             locationView.url = newURL
-            if let url = newURL, InternalURL(url)?.isAboutHomeURL ?? false {
-                line.isHidden = true
-            } else {
-                line.isHidden = false
-            }
         }
     }
 
     var profile: Profile
 
     fileprivate lazy var privateModeBadge = BadgeWithBackdrop(imageName: ImageIdentifiers.privateModeBadge,
-                                                              backdropCircleColor: themeManager.currentTheme.colors.layerAccentPrivate)
+                                                              isPrivateBadge: true)
     fileprivate let appMenuBadge = BadgeWithBackdrop(imageName: ImageIdentifiers.menuBadge)
     fileprivate let warningMenuBadge = BadgeWithBackdrop(imageName: ImageIdentifiers.menuWarning,
                                                          imageMask: ImageIdentifiers.menuWarningMask)
-    var themeManager: ThemeManager
 
-    init(profile: Profile,
-         themeManager: ThemeManager = AppContainer.shared.resolve()) {
-        self.themeManager = themeManager
+    init(profile: Profile) {
         self.profile = profile
         self.searchEngines = SearchEngines(prefs: profile.prefs, files: profile.files)
         super.init(frame: CGRect())
@@ -348,13 +343,13 @@ class URLBarView: UIView, URLBarViewProtocol, AlphaDimmable, TopBottomInterchang
 
         line.snp.remakeConstraints { make in
             if isBottomSearchBar {
-                make.top.equalTo(self).offset(0)
+                make.top.equalTo(self)
             } else {
-                make.bottom.equalTo(self)
+                make.bottom.equalTo(self).offset(URLBarViewUX.urlBarLineHeight)
             }
 
             make.leading.trailing.equalTo(self)
-            make.height.equalTo(1)
+            make.height.equalTo(URLBarViewUX.urlBarLineHeight)
         }
 
         progressBar.snp.remakeConstraints { make in
@@ -420,31 +415,17 @@ class URLBarView: UIView, URLBarViewProtocol, AlphaDimmable, TopBottomInterchang
         guard locationTextField == nil else { return }
 
         locationTextField = ToolbarTextField()
-
         guard let locationTextField = locationTextField else { return }
 
-        locationTextField.font = UIFont.preferredFont(forTextStyle: .body)
-        locationTextField.adjustsFontForContentSizeCategory = true
-        locationTextField.clipsToBounds = true
-        locationTextField.translatesAutoresizingMaskIntoConstraints = false
         locationTextField.autocompleteDelegate = self
-        locationTextField.keyboardType = .webSearch
-        locationTextField.autocorrectionType = .no
-        locationTextField.autocapitalizationType = .none
-        locationTextField.returnKeyType = .go
-        locationTextField.clearButtonMode = .whileEditing
-        locationTextField.textAlignment = .left
         locationTextField.accessibilityIdentifier = AccessibilityIdentifiers.Browser.UrlBar.searchTextField
         locationTextField.accessibilityLabel = .URLBarLocationAccessibilityLabel
-        locationTextField.attributedPlaceholder = self.locationView.placeholder
         locationContainer.addSubview(locationTextField)
+
         // Disable dragging urls on iPhones because it conflicts with editing the text
         if UIDevice.current.userInterfaceIdiom != .pad {
             locationTextField.textDragInteraction?.isEnabled = false
         }
-        let isPrivateMode = locationActiveBorderColor == themeManager.currentTheme.colors.layerAccentPrivateNonOpaque
-        locationTextField.applyUIMode(isPrivate: isPrivateMode)
-        locationTextField.applyTheme(theme: themeManager.currentTheme)
     }
 
     override func becomeFirstResponder() -> Bool {
@@ -526,8 +507,6 @@ class URLBarView: UIView, URLBarViewProtocol, AlphaDimmable, TopBottomInterchang
 
         delegate?.urlBarDidEnterOverlayMode(self)
 
-        applyTheme(theme: themeManager.currentTheme)
-
         // Bug 1193755 Workaround - Calling becomeFirstResponder before the animation happens
         // won't take the initial frame of the label into consideration, which makes the label
         // look squished at the start of the animation and expand to be correct. As a workaround,
@@ -555,7 +534,6 @@ class URLBarView: UIView, URLBarViewProtocol, AlphaDimmable, TopBottomInterchang
         locationTextField?.resignFirstResponder()
         animateToOverlayState(overlayMode: false, didCancel: cancel)
         delegate?.urlBarDidLeaveOverlayMode(self)
-        applyTheme(theme: themeManager.currentTheme)
     }
 
     func prepareOverlayAnimation() {
@@ -593,7 +571,6 @@ class URLBarView: UIView, URLBarViewProtocol, AlphaDimmable, TopBottomInterchang
         locationContainer.layer.borderColor = borderColor.cgColor
 
         if inOverlayMode {
-            line.isHidden = inOverlayMode
             // Make the editable text field span the entire URL bar, covering the lock and reader icons.
             locationTextField?.snp.remakeConstraints { make in
                 make.edges.equalTo(self.locationView)
@@ -782,6 +759,10 @@ extension URLBarView: TabLocationViewDelegate {
         delegate?.urlBarDidPressShare(self, shareView: button)
     }
 
+    func tabLocationViewDidTapShoppingCart(_ tabLocationView: TabLocationView, button: UIButton) {
+        delegate?.urlBarDidPressShoppingCart(self, shoppingCart: button)
+    }
+
     func tabLocationViewLocationAccessibilityActions(_ tabLocationView: TabLocationView) -> [UIAccessibilityCustomAction]? {
         return delegate?.urlBarLocationAccessibilityActions(self)
     }
@@ -866,22 +847,20 @@ extension URLBarView: ThemeApplicable {
 
 // MARK: - PrivateModeUI
 extension URLBarView: PrivateModeUI {
-    func applyUIMode(isPrivate: Bool) {
+    func applyUIMode(isPrivate: Bool, theme: Theme) {
         if UIDevice.current.userInterfaceIdiom != .pad {
             privateModeBadge.show(isPrivate)
         }
-        let currentTheme = themeManager.currentTheme
-        let gradientStartColor = isPrivate ? currentTheme.colors.borderAccentPrivate : currentTheme.colors.borderAccent
-        let gradientMiddleColor = isPrivate ? nil : currentTheme.colors.iconAccentPink
-        let gradientEndColor = isPrivate ? currentTheme.colors.borderAccentPrivate : currentTheme.colors.iconAccentYellow
-        locationActiveBorderColor = isPrivate ? currentTheme.colors.layerAccentPrivateNonOpaque : currentTheme.colors.layerAccentNonOpaque
+
+        let gradientStartColor = isPrivate ? theme.colors.borderAccentPrivate : theme.colors.borderAccent
+        let gradientMiddleColor = isPrivate ? nil : theme.colors.iconAccentPink
+        let gradientEndColor = isPrivate ? theme.colors.borderAccentPrivate : theme.colors.iconAccentYellow
+        locationActiveBorderColor = isPrivate ? theme.colors.layerAccentPrivateNonOpaque : theme.colors.layerAccentNonOpaque
         progressBar.setGradientColors(startColor: gradientStartColor,
                                       middleColor: gradientMiddleColor,
                                       endColor: gradientEndColor)
-        locationTextField?.applyUIMode(isPrivate: isPrivate)
-        locationTextField?.applyTheme(theme: currentTheme)
-        applyTheme(theme: currentTheme)
+        locationTextField?.applyUIMode(isPrivate: isPrivate, theme: theme)
+        locationTextField?.applyTheme(theme: theme)
+        applyTheme(theme: theme)
     }
 }
-
-extension URLBarView: SearchBarLocationProvider {}

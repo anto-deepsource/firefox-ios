@@ -6,11 +6,8 @@ import Account
 import Shared
 import Storage
 import Sync
-import SyncTelemetry
 import AuthenticationServices
 import Common
-
-private typealias MZSyncResult = MozillaAppServices.SyncResult
 
 // Extends NSObject so we can use timers.
 public class RustSyncManager: NSObject, SyncManager {
@@ -45,8 +42,7 @@ public class RustSyncManager: NSObject, SyncManager {
         }
     }
 
-    lazy var syncManagerAPI = RustSyncManagerAPI(logger: logger,
-                                                 creditCardAutofillEnabled: creditCardAutofillEnabled)
+    lazy var syncManagerAPI = RustSyncManagerAPI(logger: logger)
 
     public var isSyncing: Bool {
         return syncDisplayState != nil && syncDisplayState! == .inProgress
@@ -86,6 +82,10 @@ public class RustSyncManager: NSObject, SyncManager {
                                     selector: selector,
                                     userInfo: nil,
                                     repeats: true)
+    }
+
+    public func updateCreditCardAutofillStatus(value: Bool) {
+        creditCardAutofillEnabled = value
     }
 
     func syncEverythingSoon() {
@@ -162,7 +162,7 @@ public class RustSyncManager: NSObject, SyncManager {
         notifySyncing(notification: .ProfileDidStartSyncing)
     }
 
-    private func resolveSyncState(result: MZSyncResult) -> SyncDisplayState {
+    private func resolveSyncState(result: SyncResult) -> SyncDisplayState {
         let hasSynced = !result.successful.isEmpty
         let status = result.status
 
@@ -180,7 +180,7 @@ public class RustSyncManager: NSObject, SyncManager {
         }
     }
 
-    private func endSyncing(_ result: MZSyncResult) {
+    private func endSyncing(_ result: SyncResult) {
         logger.log("Ending all syncs.",
                    level: .info,
                    category: .sync)
@@ -192,8 +192,7 @@ public class RustSyncManager: NSObject, SyncManager {
         }
 
         if canSendUsageData() {
-            let gleanHelper = GleanSyncOperationHelper()
-            gleanHelper.reportTelemetry(result)
+            self.syncManagerAPI.reportSyncTelemetry(syncResult: result) {_ in }
         } else {
             logger.log("Profile isn't sending usage data. Not sending sync status event.",
                        level: .debug,
@@ -228,7 +227,7 @@ public class RustSyncManager: NSObject, SyncManager {
         guard let profile = profile, profile.hasSyncableAccount() else { return succeed() }
 
         beginTimedSyncs()
-        return syncEverything(why: .didLogin)
+        return syncEverything(why: .enabledChange)
     }
 
     public func onRemovedAccount() -> Success {
@@ -241,12 +240,14 @@ public class RustSyncManager: NSObject, SyncManager {
                 // This will remove keys from the Keychain if they exist, as well
                 // as wiping the Sync prefs.
 
-                // `Scratchpad.clearFromPrefs` and `clearAll` were pulled from
-                // `SyncStateMachine.clearStateFromPrefs` to reduce RustSyncManager's
-                // dependence on the swift sync state machine logic. This will make
-                // refactoring or eliminating that code easier once the rust sync manager
-                // experiment is complete.
-                Scratchpad.clearFromPrefs(self.prefsForSync.branch("scratchpad"))
+                if let keyLabel = self
+                    .prefsForSync
+                    .branch("scratchpad")
+                    .stringForKey("keyLabel") {
+                        MZKeychainWrapper
+                            .sharedClientAppContainerKeychain
+                            .removeObject(forKey: keyLabel)
+                }
                 self.prefsForSync.clearAll()
             }
             return succeed()
@@ -255,7 +256,19 @@ public class RustSyncManager: NSObject, SyncManager {
         return clearPrefs()
     }
 
-    func getEngineEnablementChangesForAccount() -> [String: Bool] {
+    public func checkCreditCardEngineEnablement() -> Bool {
+        let engine = RustSyncManagerAPI.TogglableEngine.creditcards.rawValue
+        guard let declined = UserDefaults.standard.stringArray(forKey: fxaDeclinedEngines),
+              !declined.isEmpty,
+              declined.contains(engine)
+        else {
+            let engineEnabled = prefsForSync.boolForKey("engine.\(engine).enabled") ?? false
+            return engineEnabled
+        }
+        return false
+    }
+
+    public func getEngineEnablementChangesForAccount() -> [String: Bool] {
         var engineEnablements: [String: Bool] = [:]
         // We just created the account, the user went through the Choose What to Sync
         // screen on FxA.
@@ -265,11 +278,15 @@ public class RustSyncManager: NSObject, SyncManager {
         } else {
             // Bundle in authState the engines the user activated/disabled since the
             // last sync.
-            RustSyncManagerAPI.rustTogglableEngines.forEach { engine in
+            let engines = self.creditCardAutofillEnabled ?
+                syncManagerAPI.rustTogglableEngines :
+                syncManagerAPI.rustTogglableEngines.filter({$0 != RustSyncManagerAPI.TogglableEngine.creditcards })
+
+            engines.forEach { engine in
                 let stateChangedPref = "engine.\(engine).enabledStateChanged"
                 if prefsForSync.boolForKey(stateChangedPref) != nil,
                    let enabled = prefsForSync.boolForKey("engine.\(engine).enabled") {
-                    engineEnablements[engine] = enabled
+                    engineEnablements[engine.rawValue] = enabled
                 }
             }
         }
@@ -309,52 +326,52 @@ public class RustSyncManager: NSObject, SyncManager {
         public let description = "Failed to get sync engine and key data."
     }
 
-    func getEnginesAndKeys(engines: [String],
-                           completion: @escaping (([EngineIdentifier], [String: String])) -> Void) {
+    func getEnginesAndKeys(engines: [RustSyncManagerAPI.TogglableEngine],
+                           completion: @escaping (([String], [String: String])) -> Void) {
         var localEncryptionKeys: [String: String] = [:]
         var rustEngines: [String] = []
         var registeredPlaces = false
 
-        for engine in engines.filter({ RustSyncManagerAPI.rustTogglableEngines.contains($0) }) {
+        for engine in engines.filter({ syncManagerAPI.rustTogglableEngines.contains($0) }) {
             switch engine {
-            case "tabs":
+            case .tabs:
                 profile?.tabs.registerWithSyncManager()
-                rustEngines.append(engine)
-            case "passwords":
+                rustEngines.append(engine.rawValue)
+            case .passwords:
                 profile?.logins.registerWithSyncManager()
                 if let key = try? profile?.logins.getStoredKey() {
-                    localEncryptionKeys[engine] = key
-                    rustEngines.append(engine)
+                    localEncryptionKeys[engine.rawValue] = key
+                    rustEngines.append(engine.rawValue)
                 } else {
                     logger.log("Login encryption key could not be retrieved for syncing",
                                level: .warning,
                                category: .sync)
                 }
-            case "creditcards":
-                profile?.autofill.registerWithSyncManager()
-                if let key = try? profile?.autofill.getStoredKey() {
-                    localEncryptionKeys[engine] = key
-                    rustEngines.append(engine)
-                } else {
-                    logger.log("Credit card encryption key could not be retrieved for syncing",
-                               level: .warning,
-                               category: .sync)
+            case .creditcards:
+                if self.creditCardAutofillEnabled {
+                    profile?.autofill.registerWithSyncManager()
+                    if let key = try? profile?.autofill.getStoredKey() {
+                        localEncryptionKeys[engine.rawValue] = key
+                        rustEngines.append(engine.rawValue)
+                    } else {
+                        logger.log("Credit card encryption key could not be retrieved for syncing",
+                                   level: .warning,
+                                   category: .sync)
+                    }
                 }
-            case "bookmarks", "history":
+            case .bookmarks, .history:
                 if !registeredPlaces {
                     profile?.places.registerWithSyncManager()
                     registeredPlaces = true
                 }
-                rustEngines.append(engine)
-            default:
-                continue
+                rustEngines.append(engine.rawValue)
             }
         }
 
         completion((rustEngines, localEncryptionKeys))
     }
 
-    private func doSync(params: SyncParams, completion: @escaping (MZSyncResult) -> Void) {
+    private func doSync(params: SyncParams, completion: @escaping (SyncResult) -> Void) {
         beginSyncing()
         syncManagerAPI.sync(params: params) { syncResult in
             // Save the persisted state
@@ -405,18 +422,18 @@ public class RustSyncManager: NSObject, SyncManager {
                             extra: enablementDetails)
         }
 
-        RustSyncManagerAPI.rustTogglableEngines.forEach({
-            if declined.contains($0) {
-                updateEnginePref($0, false)
+        syncManagerAPI.rustTogglableEngines.forEach({
+            if declined.contains($0.rawValue) {
+                updateEnginePref($0.rawValue, false)
             } else {
-                updateEnginePref($0, true)
+                updateEnginePref($0.rawValue, true)
             }
         })
     }
 
-    private func syncRustEngines(why: MozillaAppServices.SyncReason,
-                                 engines: [String]) -> Deferred<Maybe<MZSyncResult>> {
-        let deferred = Deferred<Maybe<MZSyncResult>>()
+    private func syncRustEngines(why: SyncReason,
+                                 engines: [String]) -> Deferred<Maybe<SyncResult>> {
+        let deferred = Deferred<Maybe<SyncResult>>()
 
         logger.log("Syncing \(engines)", level: .info, category: .sync)
         self.profile?.rustFxA.accountManager.upon { accountManager in
@@ -443,7 +460,7 @@ public class RustSyncManager: NSObject, SyncManager {
                         return
                     }
 
-                    self.getEnginesAndKeys(engines: engines) { (rustEngines, localEncryptionKeys) in
+                    self.getEnginesAndKeys(engines: engines.compactMap { RustSyncManagerAPI.TogglableEngine(rawValue: $0) }) { (rustEngines, localEncryptionKeys) in
                         let params = SyncParams(
                             reason: why,
                             engines: SyncEngineSelection.some(engines: rustEngines),
@@ -473,10 +490,9 @@ public class RustSyncManager: NSObject, SyncManager {
     }
 
     @discardableResult
-    public func syncEverything(why: OldSyncReason) -> Success {
-        let rustReason = toRustSyncReason(reason: why)
-        return syncRustEngines(why: rustReason,
-                               engines: RustSyncManagerAPI.rustTogglableEngines) >>> succeed
+    public func syncEverything(why: SyncReason) -> Success {
+        return syncRustEngines(why: why,
+                               engines: syncManagerAPI.rustTogglableEngines.compactMap { $0.rawValue }) >>> succeed
     }
 
     /**
@@ -484,7 +500,7 @@ public class RustSyncManager: NSObject, SyncManager {
      * Some help is given to callers who use different namespaces (specifically: `passwords` is mapped to `logins`)
      * and to preserve some ordering rules.
      */
-    public func syncNamedCollections(why: OldSyncReason, names: [String]) -> Success {
+    public func syncNamedCollections(why: SyncReason, names: [String]) -> Success {
         // Massage the list of names into engine identifiers.var engines = [String]()
         var engines = [String]()
 
@@ -493,52 +509,14 @@ public class RustSyncManager: NSObject, SyncManager {
             engines.append(name)
         }
 
-        let rustReason = toRustSyncReason(reason: why)
-        return syncRustEngines(why: rustReason, engines: engines) >>> succeed
+        return syncRustEngines(why: why, engines: engines) >>> succeed
     }
 
-    private func syncTabs() -> Deferred<Maybe<MZSyncResult>> {
+    public func syncTabs() -> Deferred<Maybe<SyncResult>> {
         return syncRustEngines(why: .user, engines: ["tabs"])
     }
 
-    public func syncClientsThenTabs() -> OldSyncResult {
-        // This function exists to comply with the `SyncManager` protocol while the
-        // rust sync manager experiment is enabled. To be safe, `syncTabs` is called. Once
-        // the experiment is complete this can be removed along with an update to the
-        // protocol.
-
-        return syncTabs().bind { result in
-            if let error = result.failureValue {
-                return deferMaybe(error)
-            }
-
-            // The current callers of `BrowserSyncManager.syncClientsThenTabs` only care
-            // whether the function fails or succeeds and does nothing with return value
-            // upon success so we are returning a meaningless value here.
-            return deferMaybe(SyncStatus.notStarted(SyncNotStartedReason.unknown))
-        }
-    }
-
-    public func syncClients() -> OldSyncResult {
-        // This function exists to to comply with the `SyncManager` protocol and has
-        // no callers. It will be removed when the rust sync manager experiment is
-        // complete. To be safe, `syncClientsThenTabs` is called.
-        return syncClientsThenTabs()
-    }
-
-    public func syncHistory() -> OldSyncResult {
-        // The return type of this function has been changed to comply with the
-        // `SyncManager` protocol during the rust sync manager experiment. It will be updated
-        // once the experiment is complete.
-        return syncRustEngines(why: .user, engines: ["history"]).bind { result in
-            if let error = result.failureValue {
-                return deferMaybe(error)
-            }
-
-            // The current callers of this function only care whether this function fails
-            // or succeeds and does nothing with return value upon success so we are
-            // returning a meaningless value here.
-            return deferMaybe(SyncStatus.notStarted(SyncNotStartedReason.unknown))
-        }
+    public func syncHistory() -> Deferred<Maybe<SyncResult>> {
+        return syncRustEngines(why: .user, engines: ["history"])
     }
 }

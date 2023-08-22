@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Foundation
 import UIKit
 import Shared
@@ -21,7 +22,7 @@ protocol InactiveTabsDelegate: AnyObject {
     func presentCFR()
 }
 
-class InactiveTabCell: UICollectionViewCell, ReusableCell {
+class InactiveTabCell: UICollectionViewCell, ReusableCell, ThemeApplicable {
     struct UX {
         static let HeaderAndRowHeight: CGFloat = 48
         static let CloseAllTabRowHeight: CGFloat = 88
@@ -39,7 +40,7 @@ class InactiveTabCell: UICollectionViewCell, ReusableCell {
     lazy var tableView: UITableView = {
         let tableView = UITableView(frame: .zero, style: .grouped)
         tableView.register(InactiveTabItemCell.self, forCellReuseIdentifier: InactiveTabItemCell.cellIdentifier)
-        tableView.register(CellWithRoundedButton.self, forCellReuseIdentifier: CellWithRoundedButton.cellIdentifier)
+        tableView.register(InactiveTabButton.self, forCellReuseIdentifier: InactiveTabButton.cellIdentifier)
         tableView.register(InactiveTabHeader.self, forHeaderFooterViewReuseIdentifier: InactiveTabHeader.cellIdentifier)
         tableView.allowsMultipleSelectionDuringEditing = false
         tableView.sectionHeaderHeight = 0
@@ -92,6 +93,15 @@ class InactiveTabCell: UICollectionViewCell, ReusableCell {
 
         self.bringSubviewToFront(tableView)
     }
+
+    // MARK: ThemeApplicable
+
+    func applyTheme(theme: Theme) {
+        inactiveTabsViewModel?.theme = theme
+        backgroundColor = .clear
+        tableView.backgroundColor = .clear
+        containerView.backgroundColor = theme.colors.layer2
+    }
 }
 
 // MARK: - UITableViewDataSource, UITableViewDelegate
@@ -138,19 +148,25 @@ extension InactiveTabCell: UITableViewDataSource, UITableViewDelegate {
             let viewModel = InactiveTabItemCellModel(title: tab.getTabTrayTitle(),
                                                      website: getTabDomainUrl(tab: tab))
             cell.configureCell(viewModel: viewModel)
+            if let theme = inactiveTabsViewModel?.theme {
+                cell.applyTheme(theme: theme)
+            }
+
             return cell
 
         case .closeAllTabsButton:
-            guard let cell = tableView.dequeueReusableCell(withIdentifier: CellWithRoundedButton.cellIdentifier,
-                                                           for: indexPath) as? CellWithRoundedButton
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: InactiveTabButton.cellIdentifier,
+                                                           for: indexPath) as? InactiveTabButton
             else {
                 return UITableViewCell()
             }
 
-            cell.buttonClosure = {
-                self.inactiveTabsViewModel?.shouldHideInactiveTabs = true
-                let inactiveTabsCount = self.inactiveTabsViewModel?.inactiveTabs.count
-                self.delegate?.didTapCloseInactiveTabs(tabsCount: inactiveTabsCount ?? 0)
+            cell.buttonClosure = { [weak self] in
+                let inactiveTabsCount = self?.inactiveTabsViewModel?.inactiveTabs.count
+                self?.delegate?.didTapCloseInactiveTabs(tabsCount: inactiveTabsCount ?? 0)
+            }
+            if let theme = inactiveTabsViewModel?.theme {
+                cell.applyTheme(theme: theme)
             }
 
             return cell
@@ -159,6 +175,9 @@ extension InactiveTabCell: UITableViewDataSource, UITableViewDelegate {
                                                            for: indexPath) as? OneLineTableViewCell
             else {
                 return UITableViewCell()
+            }
+            if let theme = inactiveTabsViewModel?.theme {
+                cell.applyTheme(theme: theme)
             }
             return cell
         }
@@ -197,7 +216,7 @@ extension InactiveTabCell: UITableViewDataSource, UITableViewDelegate {
         switch InactiveTabSection(rawValue: section) {
         case .inactive, .none:
             guard let headerView = tableView.dequeueReusableHeaderFooterView(withIdentifier: InactiveTabHeader.cellIdentifier) as? InactiveTabHeader else { return nil }
-            headerView.state = hasExpanded ? .down : .right
+            headerView.state = hasExpanded ? .down : .trailing
             headerView.title = String.TabsTrayInactiveTabsSectionTitle
             headerView.accessibilityLabel = hasExpanded ?
                 .TabsTray.InactiveTabs.TabsTrayInactiveTabsSectionOpenedAccessibilityTitle :
@@ -239,10 +258,10 @@ extension InactiveTabCell: UITableViewDataSource, UITableViewDelegate {
         case .inactive:
             let closeAction = UIContextualAction(
                 style: .destructive,
-                title: .TabsTray.InactiveTabs.CloseInactiveTabSwipeActionTitle) { _, _, completion in
-                    if let tab = self.inactiveTabsViewModel?.inactiveTabs[indexPath.item] {
-                        self.removeInactiveTab(at: indexPath)
-                        self.delegate?.closeInactiveTab(tab, index: indexPath.item)
+                title: .TabsTray.InactiveTabs.CloseInactiveTabSwipeActionTitle) { [weak self] _, _, completion in
+                    if let tab = self?.inactiveTabsViewModel?.inactiveTabs[indexPath.item] {
+                        self?.removeInactiveTab(at: indexPath)
+                        self?.delegate?.closeInactiveTab(tab, index: indexPath.item)
                         completion(true)
                     }
                 }
@@ -286,12 +305,5 @@ extension InactiveTabCell: UITableViewDataSource, UITableViewDelegate {
         guard tab.url != nil else { return tab.sessionData?.urls.last?.domainURL }
 
         return tab.url?.domainURL
-    }
-
-    func applyTheme(_ theme: Theme) {
-        backgroundColor = .clear
-        tableView.backgroundColor = .clear
-        containerView.backgroundColor = theme.colors.layer5
-        tableView.reloadData()
     }
 }

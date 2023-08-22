@@ -26,7 +26,8 @@ class BookmarksPanel: SiteTableViewController,
 
     // MARK: - Properties
     var bookmarksHandler: BookmarksHandler
-    var libraryPanelDelegate: LibraryPanelDelegate?
+    weak var libraryPanelDelegate: LibraryPanelDelegate?
+    weak var bookmarkCoordinatorDelegate: BookmarksCoordinatorDelegate?
     var state: LibraryPanelMainState
     let viewModel: BookmarksPanelViewModel
     private var logger: Logger
@@ -63,7 +64,7 @@ class BookmarksPanel: SiteTableViewController,
     }
 
     private lazy var bottomLeftButton: UIBarButtonItem = {
-        let button = UIBarButtonItem(image: UIImage.templateImageNamed(ImageIdentifiers.navAdd),
+        let button = UIBarButtonItem(image: UIImage.templateImageNamed(StandardImageIdentifiers.Large.plus),
                                      style: .plain,
                                      target: self,
                                      action: #selector(bottomLeftButtonAction))
@@ -148,38 +149,52 @@ class BookmarksPanel: SiteTableViewController,
 
     private func getNewBookmarkAction() -> PhotonRowActions {
         return SingleActionViewModel(title: .BookmarksNewBookmark,
-                                     iconString: ImageIdentifiers.actionAddBookmark,
+                                     iconString: StandardImageIdentifiers.Large.bookmark,
                                      tapHandler: { _ in
             guard let bookmarkFolder = self.viewModel.bookmarkFolder else { return }
 
             self.updatePanelState(newState: .bookmarks(state: .itemEditModeInvalidField))
-            let detailController = BookmarkDetailPanel(profile: self.profile,
-                                                       withNewBookmarkNodeType: .bookmark,
-                                                       parentBookmarkFolder: bookmarkFolder) { state in
-                self.updatePanelState(newState: .bookmarks(state: state))
-                self.sendPanelChangeNotification()
+            if CoordinatorFlagManager.isLibraryCoordinatorEnabled {
+                self.bookmarkCoordinatorDelegate?.showBookmarkDetail(
+                    bookmarkType: .bookmark,
+                    parentBookmarkFolder: bookmarkFolder,
+                    updatePanelState: { state in
+                        self.updatePanelState(newState: .bookmarks(state: state))
+                        self.sendPanelChangeNotification()
+                    })
+            } else {
+                let detailController = BookmarkDetailPanel(profile: self.profile,
+                                                           withNewBookmarkNodeType: .bookmark,
+                                                           parentBookmarkFolder: bookmarkFolder) { state in
+                    self.updatePanelState(newState: .bookmarks(state: state))
+                    self.sendPanelChangeNotification()
+                }
+                self.navigationController?.pushViewController(detailController, animated: true)
             }
-            self.navigationController?.pushViewController(detailController, animated: true)
         }).items
     }
 
     private func getNewFolderAction() -> PhotonRowActions {
         return SingleActionViewModel(title: .BookmarksNewFolder,
-                                     iconString: ImageIdentifiers.bookmarkFolder,
+                                     iconString: StandardImageIdentifiers.Large.folder,
                                      tapHandler: { _ in
             guard let bookmarkFolder = self.viewModel.bookmarkFolder else { return }
 
             self.updatePanelState(newState: .bookmarks(state: .itemEditMode))
-            let detailController = BookmarkDetailPanel(profile: self.profile,
-                                                       withNewBookmarkNodeType: .folder,
-                                                       parentBookmarkFolder: bookmarkFolder)
-            self.navigationController?.pushViewController(detailController, animated: true)
+            if CoordinatorFlagManager.isLibraryCoordinatorEnabled {
+                self.bookmarkCoordinatorDelegate?.showBookmarkDetail(bookmarkType: .folder, parentBookmarkFolder: bookmarkFolder)
+            } else {
+                let detailController = BookmarkDetailPanel(profile: self.profile,
+                                                           withNewBookmarkNodeType: .folder,
+                                                           parentBookmarkFolder: bookmarkFolder)
+                self.navigationController?.pushViewController(detailController, animated: true)
+            }
         }).items
     }
 
     private func getNewSeparatorAction() -> PhotonRowActions {
         return SingleActionViewModel(title: .BookmarksNewSeparator,
-                                     iconString: ImageIdentifiers.navMenu,
+                                     iconString: StandardImageIdentifiers.Large.appMenu,
                                      tapHandler: { _ in
             let centerVisibleRow = self.centerVisibleRow()
 
@@ -355,15 +370,30 @@ class BookmarksPanel: SiteTableViewController,
                 !(node is BookmarkSeparatorData),
                 isCurrentFolderEditable(at: indexPath) {
                 // Only show detail controller for editable nodes
-                showBookmarkDetailController(for: node, folder: bookmarkFolder)
+                if CoordinatorFlagManager.isLibraryCoordinatorEnabled {
+                    bookmarkCoordinatorDelegate?.showBookmarkDetail(for: node, folder: bookmarkFolder)
+                    updatePanelState(newState: .bookmarks(state: .itemEditMode))
+                } else {
+                    showBookmarkDetailController(for: node, folder: bookmarkFolder)
+                }
             }
             return
         }
 
         updatePanelState(newState: .bookmarks(state: .inFolder))
-        bookmarkCell.didSelect(profile: profile,
-                               libraryPanelDelegate: libraryPanelDelegate,
-                               navigationController: navigationController)
+        if CoordinatorFlagManager.isLibraryCoordinatorEnabled {
+            if let itemData = bookmarkCell as? BookmarkItemData, let url = URL(string: itemData.url) {
+                libraryPanelDelegate?.libraryPanel(didSelectURL: url, visitType: .bookmark)
+            } else {
+                guard let folder = bookmarkCell as? FxBookmarkNode else { return }
+                bookmarkCoordinatorDelegate?.start(from: folder)
+            }
+        } else {
+            bookmarkCell.didSelect(profile: profile,
+                                   libraryPanelDelegate: libraryPanelDelegate,
+                                   navigationController: navigationController,
+                                   logger: logger)
+        }
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -503,7 +533,7 @@ extension BookmarksPanel: LibraryPanelContextMenu {
         }
 
         let pinTopSite = SingleActionViewModel(title: .AddToShortcutsActionTitle,
-                                               iconString: ImageIdentifiers.addShortcut,
+                                               iconString: StandardImageIdentifiers.Large.pin,
                                                tapHandler: { _ in
             self.profile.pinnedSites.addPinnedTopSite(site).uponQueue(.main) { result in
                 if result.isSuccess {
@@ -520,7 +550,7 @@ extension BookmarksPanel: LibraryPanelContextMenu {
         actions.append(pinTopSite)
 
         let removeAction = SingleActionViewModel(title: .RemoveBookmarkContextMenuTitle,
-                                                 iconString: ImageIdentifiers.actionRemoveBookmark,
+                                                 iconString: StandardImageIdentifiers.Large.bookmarkSlash,
                                                  tapHandler: { _ in
             self.deleteBookmarkNodeAtIndexPath(indexPath)
             TelemetryWrapper.recordEvent(category: .action,

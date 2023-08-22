@@ -6,6 +6,7 @@ import Foundation
 import Shared
 import Account
 import Common
+import ComponentLibrary
 
 /// Reflects parent page that launched FirefoxAccountSignInViewController
 enum FxASignInParentType {
@@ -62,8 +63,8 @@ class FirefoxAccountSignInViewController: UIViewController, Themeable {
         label.numberOfLines = 0
         label.lineBreakMode = .byWordWrapping
         label.text = .FxASignin_Subtitle
-        label.font = DynamicFontHelper.defaultHelper.preferredBoldFont(withTextStyle: .headline,
-                                                                       size: UX.signInLabelFontSize)
+        label.font = DefaultDynamicFontHelper.preferredBoldFont(withTextStyle: .headline,
+                                                                size: UX.signInLabelFontSize)
         label.adjustsFontForContentSizeCategory = true
     }
 
@@ -76,8 +77,8 @@ class FirefoxAccountSignInViewController: UIViewController, Themeable {
         label.textAlignment = .center
         label.numberOfLines = 0
         label.lineBreakMode = .byWordWrapping
-        label.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .headline,
-                                                                   size: UX.signInLabelFontSize)
+        label.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .headline,
+                                                            size: UX.signInLabelFontSize)
         label.adjustsFontForContentSizeCategory = true
 
         let placeholder = "firefox.com/pair"
@@ -85,8 +86,8 @@ class FirefoxAccountSignInViewController: UIViewController, Themeable {
             manager.getPairingAuthorityURL { result in
                 guard let url = try? result.get(), let host = url.host else { return }
 
-                let font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .headline,
-                                                                         size: UX.signInLabelFontSize)
+                let font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .headline,
+                                                                  size: UX.signInLabelFontSize)
                 let shortUrl = host + url.path // "firefox.com" + "/pair"
                 let msg: String = .FxASignin_QRInstructions.replaceFirstOccurrence(of: placeholder, with: shortUrl)
                 label.attributedText = msg.attributedText(boldString: shortUrl, font: font)
@@ -99,7 +100,7 @@ class FirefoxAccountSignInViewController: UIViewController, Themeable {
         button.setImage(self.signinSyncQRImage?.tinted(withColor: .white), for: .highlighted)
         button.setTitle(.FxASignin_QRScanSignin, for: .normal)
         button.accessibilityIdentifier = AccessibilityIdentifiers.Settings.FirefoxAccount.qrButton
-        button.titleLabel?.font = DynamicFontHelper.defaultHelper.preferredBoldFont(
+        button.titleLabel?.font = DefaultDynamicFontHelper.preferredBoldFont(
             withTextStyle: .callout,
             size: UX.buttonFontSize)
 
@@ -117,7 +118,7 @@ class FirefoxAccountSignInViewController: UIViewController, Themeable {
         button.accessibilityIdentifier = AccessibilityIdentifiers.Settings.FirefoxAccount.fxaSignInButton
         button.addTarget(self, action: #selector(self.emailLoginTapped), for: .touchUpInside)
         button.titleLabel?.adjustsFontForContentSizeCategory = true
-        button.titleLabel?.font = DynamicFontHelper.defaultHelper.preferredBoldFont(
+        button.titleLabel?.font = DefaultDynamicFontHelper.preferredBoldFont(
             withTextStyle: .callout,
             size: UX.buttonFontSize)
         button.contentEdgeInsets = UIEdgeInsets(top: UX.buttonVerticalInset,
@@ -255,7 +256,7 @@ class FirefoxAccountSignInViewController: UIViewController, Themeable {
     func scanbuttonTapped(_ sender: UIButton) {
         let qrCodeVC = QRCodeViewController()
         qrCodeVC.qrCodeDelegate = self
-        TelemetryWrapper.recordEvent(category: .firefoxAccount, method: .tap, object: telemetryObject, extras: ["flow_type": "pairing"])
+        TelemetryWrapper.recordEvent(category: .firefoxAccount, method: .tap, object: .syncSignInScanQRCode)
         presentThemedViewController(navItemLocation: .Left, navItemText: .Close, vcBeingPresented: qrCodeVC, topTabsVisible: true)
     }
 
@@ -274,7 +275,7 @@ class FirefoxAccountSignInViewController: UIViewController, Themeable {
             self?.shouldReload?()
             self?.dismissVC()
         }
-        TelemetryWrapper.recordEvent(category: .firefoxAccount, method: .qrPairing, object: telemetryObject, extras: ["flow_type": "email"])
+        TelemetryWrapper.recordEvent(category: .firefoxAccount, method: .tap, object: .syncSignInUseEmail)
         navigationController?.pushViewController(fxaWebVC, animated: true)
     }
 }

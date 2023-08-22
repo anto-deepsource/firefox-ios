@@ -20,8 +20,8 @@ private enum LoadingState {
 }
 
 public enum ClientType: String {
-    case Desktop = "deviceTypeDesktop"
-    case Mobile = "deviceTypeMobile"
+    case Desktop = "deviceDesktopLarge"
+    case Mobile = "deviceMobileLarge"
     case Tablet = "deviceTypeTablet"
     case VR = "deviceTypeVR"
     case TV = "deviceTypeTV"
@@ -52,7 +52,7 @@ class DevicePickerViewController: UITableViewController {
 
     private var devices = [RemoteDevice]()
     var profile: Profile
-    var pickerDelegate: DevicePickerViewControllerDelegate?
+    weak var pickerDelegate: DevicePickerViewControllerDelegate?
     private var selectedIdentifiers = Set<String>() // Stores Device.id
     private var notification: Any?
     private var loadingState = LoadingState.loading
@@ -108,6 +108,11 @@ class DevicePickerViewController: UITableViewController {
         }
 
         loadList()
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        pickerDelegate?.devicePickerViewControllerDidCancel(self)
     }
 
     deinit {

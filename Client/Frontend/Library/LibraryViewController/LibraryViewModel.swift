@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import Foundation
 
 class LibraryViewModel {
@@ -25,9 +26,9 @@ class LibraryViewModel {
     }
 
     var segmentedControlItems: [UIImage] {
-        [UIImage(named: ImageIdentifiers.libraryBookmarks) ?? UIImage(),
-         UIImage(named: ImageIdentifiers.libraryHistory) ?? UIImage(),
-         UIImage(named: ImageIdentifiers.libraryDownloads) ?? UIImage(),
+        [UIImage(named: StandardImageIdentifiers.Large.bookmarkTrayFill) ?? UIImage(),
+         UIImage(named: StandardImageIdentifiers.Large.history) ?? UIImage(),
+         UIImage(named: StandardImageIdentifiers.Large.download) ?? UIImage(),
          UIImage(named: ImageIdentifiers.libraryReadingList) ?? UIImage()]
     }
 
@@ -41,5 +42,13 @@ class LibraryViewModel {
         guard let index = selectedPanel?.rawValue else { return }
 
         panelDescriptors[index].setupNavigationController()
+    }
+
+    func resetHistoryPanelPagination() {
+        // Reset history panel pagination to get latest history visit
+        if let historyPanel = panelDescriptors.first(where: { $0.panelType == .history }),
+           let vcPanel = historyPanel.viewController as? HistoryPanel {
+            vcPanel.viewModel.shouldResetHistory = true
+        }
     }
 }

@@ -84,7 +84,7 @@ if [ -z "$number_string" ]; then
     # We try to resolve that, and find the version from the Package.swift file in that local directory.
     # https://github.com/mozilla-mobile/firefox-ios/issues/12243
     rust_components_path=$(grep -A 3 $'XCRemoteSwiftPackageReference "rust-components-swift"' "$SOURCE_ROOT/$PROJECT.xcodeproj/project.pbxproj" | grep 'repositoryURL = "file://' | grep -o -E '/\w[^"]+')
-    number_string=$(grep 'let version =' "$rust_components_path/Package.swift" | grep -E -o "\d+\.\d+" | sed 's/\./\.0\./g')
+    number_string=$(grep 'let version =' "$rust_components_path/Package.swift" | grep -E -o "\d+\.0.\d+")
 
     if [ -z "$number_string" ]; then
         echo "Error: No https://github.com/mozilla/rust-components-swift package was detected."
@@ -165,7 +165,7 @@ if [ -n "$MOZ_APPSERVICES_LOCAL" ] ; then
     export BINARY_PATH="$HOME/.cargo/bin/cargo run --manifest-path $LOCAL_FML_DIR/Cargo.toml --"
 else
     # Otherwise, we should download a pre-built copy
-    AS_DOWNLOAD_URL="https://github.com/mozilla/application-services/releases/download/v$AS_VERSION"
+    AS_DOWNLOAD_URL="https://archive.mozilla.org/pub/app-services/releases/$AS_VERSION"
     CHECKSUM_URL="$AS_DOWNLOAD_URL/nimbus-fml.sha256"
     FML_URL="$AS_DOWNLOAD_URL/nimbus-fml.zip"
     RELEASE_STATUS_CODE=$(curl -L --write-out '%{http_code}' --silent --output /dev/null "$CHECKSUM_URL")

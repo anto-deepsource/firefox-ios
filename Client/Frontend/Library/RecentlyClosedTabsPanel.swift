@@ -6,10 +6,10 @@ import UIKit
 import Shared
 import Storage
 import SiteImageView
+import Common
 
 private struct RecentlyClosedPanelUX {
     static let IconSize = CGSize(width: 23, height: 23)
-    static let IconBorderColor = UIColor.Photon.Grey30
     static let IconBorderWidth: CGFloat = 0.5
 }
 
@@ -18,7 +18,11 @@ protocol RecentlyClosedPanelDelegate: AnyObject {
     func openRecentlyClosedSiteInNewTab(_ url: URL, isPrivate: Bool)
 }
 
-class RecentlyClosedTabsPanel: UIViewController, LibraryPanel {
+class RecentlyClosedTabsPanel: UIViewController, LibraryPanel, Themeable {
+    var themeManager: ThemeManager
+    var themeObserver: NSObjectProtocol?
+    var notificationCenter: NotificationProtocol
+
     weak var libraryPanelDelegate: LibraryPanelDelegate?
     var state: LibraryPanelMainState = .history(state: .inFolder)
     var recentlyClosedTabsDelegate: RecentlyClosedPanelDelegate?
@@ -27,7 +31,13 @@ class RecentlyClosedTabsPanel: UIViewController, LibraryPanel {
 
     fileprivate lazy var tableViewController = RecentlyClosedTabsPanelSiteTableViewController(profile: profile)
 
-    init(profile: Profile) {
+    init(
+        profile: Profile,
+        themeManager: ThemeManager = AppContainer.shared.resolve(),
+        notificationCenter: NotificationProtocol = NotificationCenter.default
+    ) {
+        self.themeManager = themeManager
+        self.notificationCenter = notificationCenter
         self.profile = profile
         super.init(nibName: nil, bundle: nil)
     }
@@ -39,16 +49,14 @@ class RecentlyClosedTabsPanel: UIViewController, LibraryPanel {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        view.backgroundColor = UIColor.legacyTheme.tableView.headerBackground
-
         tableViewController.libraryPanelDelegate = libraryPanelDelegate
         tableViewController.recentlyClosedTabsDelegate = recentlyClosedTabsDelegate
         tableViewController.recentlyClosedTabsPanel = self
 
-        self.addChild(tableViewController)
+        addChild(tableViewController)
         tableViewController.didMove(toParent: self)
 
-        self.view.addSubview(tableViewController.view)
+        view.addSubview(tableViewController.view)
 
         NSLayoutConstraint.activate([
             tableViewController.view.topAnchor.constraint(equalTo: view.topAnchor),
@@ -56,6 +64,9 @@ class RecentlyClosedTabsPanel: UIViewController, LibraryPanel {
             tableViewController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             tableViewController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
+        title = .RecentlyClosedTabsPanelTitle
+        listenForThemeChange(view)
+        applyTheme()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -65,14 +76,14 @@ class RecentlyClosedTabsPanel: UIViewController, LibraryPanel {
         // Previously, BVC was assigned it on panel creation via a foregroundBVC call. But it can be done this way, to
         // avoid that call. `sceneForVC` will use the focused, active and foregrounded scene's BVC.
         guard recentlyClosedTabsDelegate != nil else {
-            if CoordinatorFlagManager.isCoordinatorEnabled {
-                recentlyClosedTabsDelegate = sceneForVC?.coordinatorBrowserViewController
-            } else {
-                recentlyClosedTabsDelegate = sceneForVC?.browserViewController
-            }
+            recentlyClosedTabsDelegate = sceneForVC?.coordinatorBrowserViewController
 
             return
         }
+    }
+
+    func applyTheme() {
+        view.backgroundColor = themeManager.currentTheme.colors.layer1
     }
 }
 
@@ -112,10 +123,9 @@ class RecentlyClosedTabsPanelSiteTableViewController: SiteTableViewController {
         twoLineCell.titleLabel.text = tab.title
         twoLineCell.titleLabel.isHidden = tab.title?.isEmpty ?? true ? true : false
         twoLineCell.descriptionLabel.text = displayURL.absoluteDisplayString
-        twoLineCell.leftImageView.layer.borderColor = RecentlyClosedPanelUX.IconBorderColor.cgColor
         twoLineCell.leftImageView.layer.borderWidth = RecentlyClosedPanelUX.IconBorderWidth
         twoLineCell.leftImageView.setFavicon(FaviconImageViewModel(siteURLString: displayURL.absoluteString))
-
+        twoLineCell.applyTheme(theme: themeManager.currentTheme)
         return twoLineCell
     }
 
@@ -171,11 +181,5 @@ extension RecentlyClosedTabsPanelSiteTableViewController: LibraryPanelContextMen
             return getRecentlyClosedTabContexMenuActions(for: site, recentlyClosedPanelDelegate: recentlyClosedTabsDelegate)
         }
         return getDefaultContextMenuActions(for: site, libraryPanelDelegate: libraryPanelDelegate)
-    }
-}
-
-extension RecentlyClosedTabsPanel: LegacyNotificationThemeable {
-    func applyTheme() {
-        tableViewController.tableView.reloadData()
     }
 }

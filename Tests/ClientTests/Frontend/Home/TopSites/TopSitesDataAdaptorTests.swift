@@ -65,7 +65,7 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
         XCTAssertTrue(data[0].isGoogleGUID)
     }
 
-    func testCalculateTopSitesData_hasGoogleTopSiteWithPinnedCount_googlePrefsNi() {
+    func testCalculateTopSitesData_hasGoogleTopSiteWithPinnedCount_googlePrefsNil() {
         let subject = createSubject(addPinnedSiteCount: 3)
 
         subject.recalculateTopSiteData(for: 1)
@@ -104,7 +104,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
     // MARK: Sponsored tiles
 
     func testLoadTopSitesData_hasDataAccountsForSponsoredTiles() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
         profile.prefs.setBool(true, forKey: PrefsKeys.GoogleTopSiteAddedKey)
         profile.prefs.setBool(true, forKey: PrefsKeys.GoogleTopSiteHideKey)
 
@@ -116,7 +115,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
     }
 
     func testLoadTopSitesData_addSponsoredTile() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
         let expectedContileResult = ContileProviderMock.getContiles(contilesCount: 1)
         let subject = createSubject(expectedContileResult: ContileResult.success(expectedContileResult))
 
@@ -127,7 +125,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
     }
 
     func testCalculateTopSitesData_addSponsoredTileAfterGoogle() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
         let expectedContileResult = ContileProviderMock.getContiles(contilesCount: 1)
         let subject = createSubject(expectedContileResult: ContileResult.success(expectedContileResult))
 
@@ -140,8 +137,7 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
     }
 
     func testCalculateTopSitesData_doesNotAddSponsoredTileIfError() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
-        let expectedContileResult = ContileResult.failure(ContileProvider.Error.failure)
+        let expectedContileResult = ContileResult.failure(ContileProvider.Error.noDataAvailable)
         let subject = createSubject(expectedContileResult: expectedContileResult)
 
         subject.recalculateTopSiteData(for: 6)
@@ -153,7 +149,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
     }
 
     func testCalculateTopSitesData_doesNotAddSponsoredTileIfSuccessEmpty() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
         let expectedContileResult = ContileResult.success([])
         let subject = createSubject(expectedContileResult: expectedContileResult)
 
@@ -166,7 +161,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
     }
 
     func testCalculateTopSitesData_doesNotAddMoreSponsoredTileThanMaximum() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
         // Max contiles is currently at 2, so it should add 2 contiles only
         let expectedContileResult = ContileProviderMock.getContiles(contilesCount: 3)
         let subject = createSubject(expectedContileResult: ContileResult.success(expectedContileResult))
@@ -180,8 +174,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
     }
 
     func testCalculateTopSitesData_doesNotAddSponsoredTileIfDuplicatePinned() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
-
         let expectedContileResult = ContileProviderMock.getContiles(contilesCount: 1,
                                                                     duplicateFirstTile: true,
                                                                     pinnedDuplicateTile: true)
@@ -195,8 +187,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
     }
 
     func testCalculateTopSitesData_addSponsoredTileIfDuplicateIsNotPinned() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
-
         let expectedContileResult = ContileProviderMock.getContiles(contilesCount: 1,
                                                                     duplicateFirstTile: true)
         let subject = createSubject(addPinnedSiteCount: 1, expectedContileResult: ContileResult.success(expectedContileResult))
@@ -210,8 +200,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
     }
 
     func testCalculateTopSitesData_addNextTileIfSponsoredTileIsDuplicate() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
-
         let expectedContileResult = ContileProviderMock.getContiles(contilesCount: 2,
                                                                     duplicateFirstTile: true,
                                                                     pinnedDuplicateTile: true)
@@ -227,8 +215,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
     }
 
     func testCalculateTopSitesData_doesNotAddTileIfAllSpacesArePinned() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
-
         let expectedContileResult = ContileResult.success([])
         let subject = createSubject(addPinnedSiteCount: 12, expectedContileResult: expectedContileResult)
 
@@ -244,8 +230,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
     }
 
     func testCalculateTopSitesData_doesNotAddTileIfAllSpacesArePinnedAndGoogleIsThere() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
-
         let expectedContileResult = ContileResult.success([])
         let subject = createSubject(addPinnedSiteCount: 11, expectedContileResult: expectedContileResult)
 
@@ -258,7 +242,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
     }
 
     func testSponsoredTileOrder_emptySites_addsAllContiles() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
         let expectedContileResult = ContileResult.success(ContileProviderMock.defaultSuccessData)
         let subject = createSubject(expectedContileResult: expectedContileResult)
 
@@ -271,7 +254,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
     }
 
     func testSponsoredTileOrder_emptySites_addsOneIfGoogleIsThere() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
         let expectedContileResult = ContileResult.success(ContileProviderMock.defaultSuccessData)
         let subject = createSubject(expectedContileResult: expectedContileResult)
 
@@ -283,7 +265,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
     }
 
     func testSponsoredTileOrder_withSites_addsAllContiles() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
         let expectedContileResult = ContileResult.success(ContileProviderMock.defaultSuccessData)
         let subject = createSubject(expectedContileResult: expectedContileResult)
 
@@ -297,8 +278,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
     }
 
     func testSponsoredTile_GoogleTopSiteDoesntCountInSponsoredTilesCount_IfHidden() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
-
         let expectedContileResult = ContileResult.success(ContileProviderMock.defaultSuccessData)
         let subject = createSubject(expectedContileResult: expectedContileResult)
 
@@ -311,8 +290,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
     }
 
     func testSponsoredTile_GoogleTopSiteDoesntCountInSponsoredTilesCount_IfNotHidden() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
-
         let expectedContileResult = ContileResult.success(ContileProviderMock.defaultSuccessData)
         let subject = createSubject(expectedContileResult: expectedContileResult)
 
@@ -327,7 +304,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
 
     // Sponsored > Frequency
     func testDuplicates_SponsoredTileHasPrecedenceOnFrequencyTiles() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
         let subject = createSubject(expectedContileResult: ContileResult.success([ContileProviderMock.duplicateTile]))
 
         subject.recalculateTopSiteData(for: 6)
@@ -341,8 +317,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
 
     // Pinned > Sponsored
     func testDuplicates_PinnedTilesHasPrecedenceOnSponsoredTiles() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
-
         let subject = createSubject(addPinnedSiteCount: 1,
                                     expectedContileResult: ContileResult.success([ContileProviderMock.pinnedDuplicateTile]))
 
@@ -358,7 +332,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
 
     // Pinned > Frequency
     func testDuplicates_PinnedTilesHasPrecedenceOnFrequencyTiles() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
         let expectedPinnedURL = String(format: ContileProviderMock.url, "0")
         let subject = createSubject(addPinnedSiteCount: 1, siteCount: 3, duplicatePinnedSiteURL: true)
 
@@ -386,7 +359,6 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
 
     // Pinned vs another Pinned of same domain
     func testDuplicates_PinnedTilesOfSameDomainIsntDeduped() {
-        featureFlags.set(feature: .sponsoredTiles, to: true)
         let subject = createSubject(addPinnedSiteCount: 2, siteCount: 0)
 
         subject.recalculateTopSiteData(for: 6)
@@ -402,6 +374,76 @@ class TopSitesDataAdaptorTests: XCTestCase, FeatureFlaggable {
         XCTAssertFalse(data[2].isSponsoredTile)
         XCTAssertTrue(data[2].isPinned)
         XCTAssertEqual(data[2].site.url, "https://www.apinnedurl.com/pinned1")
+    }
+
+    // MARK: - Search engine
+    // We need to remove current search engine from sponsored tile, but not in other tiles type
+
+    func testSearchEngine_googleTile_doesntGetRemoved() {
+        let googleSearchEngine = OpenSearchEngine(engineID: "12345",
+                                                  shortName: "Google",
+                                                  image: UIImage(),
+                                                  searchTemplate: "https://google.com/find?q={searchTerm}",
+                                                  suggestTemplate: nil,
+                                                  isCustomEngine: false)
+        add(searchEngine: googleSearchEngine)
+        let subject = createSubject()
+        subject.recalculateTopSiteData(for: 6)
+
+        let data = subject.getTopSitesData()
+
+        XCTAssertTrue(data[0].isGoogleURL)
+        XCTAssertTrue(data[0].isGoogleGUID)
+    }
+
+    func testSearchEngine_pinnedTile_doesntGetRemoved() {
+        let pinnedTileSearchEngine = OpenSearchEngine(engineID: "12345",
+                                                      shortName: "Apinnedurl1",
+                                                      image: UIImage(),
+                                                      searchTemplate: "https://apinnedurl1.com/find?q={searchTerm}",
+                                                      suggestTemplate: nil,
+                                                      isCustomEngine: false)
+        add(searchEngine: pinnedTileSearchEngine)
+        let subject = createSubject(addPinnedSiteCount: 3)
+        subject.recalculateTopSiteData(for: 6)
+
+        let data = subject.getTopSitesData()
+        XCTAssertEqual(data.count, 14)
+        XCTAssertTrue(data[0].isPinned)
+    }
+
+    func testSearchEngine_historyTile_doesntGetRemoved() {
+        let historyTileSearchEngine = OpenSearchEngine(engineID: "12345",
+                                                       shortName: "Aurl0",
+                                                       image: UIImage(),
+                                                       searchTemplate: "https://aurl0.com/find?q={searchTerm}",
+                                                       suggestTemplate: nil,
+                                                       isCustomEngine: false)
+        add(searchEngine: historyTileSearchEngine)
+        let subject = createSubject()
+        subject.recalculateTopSiteData(for: 6)
+
+        let data = subject.getTopSitesData()
+
+        XCTAssertEqual(data[1].title, "A title 0")
+    }
+
+    func testSearchEngine_sponsoredTile_getsRemoved() {
+        let sponsoredTileSearchEngine = OpenSearchEngine(engineID: "Firefox",
+                                                         shortName: "Firefox",
+                                                         image: UIImage(),
+                                                         searchTemplate: "https://firefox.com/find?q={searchTerm}",
+                                                         suggestTemplate: nil,
+                                                         isCustomEngine: false)
+        add(searchEngine: sponsoredTileSearchEngine)
+        let expectedContileResult = ContileProviderMock.getContiles(contilesCount: 1)
+        let subject = createSubject(expectedContileResult: ContileResult.success(expectedContileResult))
+
+        subject.recalculateTopSiteData(for: 6)
+
+        let data = subject.getTopSitesData()
+        XCTAssertTrue(data[0].isGoogleURL)
+        XCTAssertFalse(data[1].isSponsoredTile)
     }
 }
 
@@ -518,6 +560,10 @@ extension TopSitesDataAdaptorTests {
         trackForMemoryLeaks(dispatchGroup, file: file, line: line)
 
         return subject
+    }
+
+    func add(searchEngine: OpenSearchEngine) {
+        profile.searchEngines.defaultEngine = searchEngine
     }
 }
 

@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/
 
+import Common
 import UIKit
 import Storage
 import Shared
@@ -23,10 +24,9 @@ class SiteTableViewHeader: UITableViewHeaderFooterView, ThemeApplicable, Reusabl
     var collapsibleState: ExpandButtonState?
 
     private let titleLabel: UILabel = .build { label in
-        label.textColor = UIColor.legacyTheme.tableView.headerTextDark
         label.numberOfLines = 0
-        label.font = DynamicFontHelper.defaultHelper.preferredFont(withTextStyle: .headline,
-                                                                   size: 16)
+        label.font = DefaultDynamicFontHelper.preferredFont(withTextStyle: .headline,
+                                                            size: 16)
         label.adjustsFontForContentSizeCategory = true
     }
 
