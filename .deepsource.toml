@@ -2,3 +2,6 @@ version = 1
 
 [[analyzers]]
 name = "swift"
+
+  [analyzers.meta]
+  cyclomatic_complexity_threshold = "low"
