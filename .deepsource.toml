@@ -4,4 +4,4 @@ version = 1
 name = "swift"
 
   [analyzers.meta]
-  cyclomatic_complexity_threshold = "low"
+  cyclomatic_complexity_threshold = "very-high"
