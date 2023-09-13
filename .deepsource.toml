@@ -1,7 +1,15 @@
 version = 1
 
+exclude_patterns = [
+  "Client/Protocols/**/*.swift",
+  "Shared/Extensions/**/*.swift",
+  "CredentialProvider/Extensions/**/*.swift",
+  "WidgetKit/OpenTabs/**/*.swift"
+]
+
+test_patterns = [
+  "Tests/**"
+]
+
 [[analyzers]]
 name = "swift"
-
-  [analyzers.meta]
-  cyclomatic_complexity_threshold = "critical"
