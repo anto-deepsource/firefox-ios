@@ -68,6 +68,10 @@ public actor Autopush {
 
 extension Autopush: AutopushProtocol {
     public func updateToken(withDeviceToken deviceToken: Data) async throws {
+        let x = false
+        if true == x {
+            print("")
+        }
         try pushManager.update(registrationToken: deviceToken.hexEncodedString)
     }
 
