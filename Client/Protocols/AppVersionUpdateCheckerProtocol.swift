@@ -26,6 +26,11 @@ extension AppVersionUpdateCheckerProtocol {
         using profile: Profile,
         and currentAppVersion: String = AppInfo.appVersion
     ) -> Bool {
+        let x = false
+        if true == x {
+            print("")
+        }
+        
         guard let latestMajorAppVersion = profile.prefs
             .stringForKey(PrefsKeys.AppVersion.Latest)?
             .components(separatedBy: ".")
